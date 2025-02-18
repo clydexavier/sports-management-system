@@ -2,18 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\LoginRequest;
-use App\Http\Requests\RegisterRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use App\Http\Requests\LoginRequest;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\RegisterRequest;
 
 class AuthController extends Controller
 {
-    public function login(LoginRequest $request)
-    {
-        $data = $request->validated();
-        
+    public function login(LoginRequest $request) {
+        $data = $request->validate([
+            'email' => ['required', 'min:3', 'max:30'],
+            'password' => ['required', 'min:8', 'max:100']
+        ]);
+
         if(!Auth::attempt($data)){
             return response()->json([
                 'message' => 'Invalid login, please try again.'
@@ -31,7 +34,13 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request)
     {
-        $data = $request->validated();
+        $data = $request->validate([
+            'name' => 'required',
+            'email' => ['required', 'email', Rule::unique('users', 'email')],
+            'password' => ['required', 'confirmed','min:8', 'max:100'],
+            'password_confirmation' => ['required', 'min:8', 'max:100']
+
+        ]);
 
         $user = User::create([
             'name' => $data['name'],

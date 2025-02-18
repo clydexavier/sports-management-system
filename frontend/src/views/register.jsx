@@ -11,7 +11,7 @@ export default function register(){
     const nameRef = useRef();
     const emailRef = useRef();
     const passwordRef = useRef();
-    const confirmPasswordRef = useRef();
+    const passwordConfirmationRef = useRef();
 
     const {setUser, setToken} = useStateContext();
     const [errorMessage, setErrorMessage] = useState("");
@@ -27,10 +27,10 @@ export default function register(){
         const name = nameRef.current.value;
         const email = emailRef.current.value;
         const password = passwordRef.current.value;
-        const confirmPassword = confirmPasswordRef.current.value;
+        const password_confirmation = passwordConfirmationRef.current.value;
 
         
-        if(!name || !email || !password || !confirmPassword) {
+        if(!name || !email || !password || !password_confirmation) {
             setErrorMessage("All fields are required.")
             return;
         }
@@ -40,10 +40,10 @@ export default function register(){
             return;
         }
 
-        if (password !== confirmPassword) {
+       /* if (password !== confirmPassword) {
             setErrorMessage("Passwords do not match.");
             return;
-        }
+        }*/
 
          // Clear error message if all validations pass
          setErrorMessage("");
@@ -53,6 +53,7 @@ export default function register(){
             name: nameRef.current.value,
             email: emailRef.current.value,
             password: passwordRef.current.value,
+            password_confirmation: passwordConfirmationRef.current.value,
         }
         axiosClient.post("/register",payload).then(({data})=>{
             setUser(data.user);
@@ -166,14 +167,14 @@ export default function register(){
             <div>
               <div className="flex items-center justify-between">
                 <label htmlFor="password" className="block text-sm/6 font-medium text-gray-900">
-                  Confirm Passord
+                  Confirm Password
                 </label>
               </div>
               <div className="mt-2">
                 <input
-                ref={confirmPasswordRef}
-                  id="confirmPassword"
-                  name="confirmp=Password"
+                ref={passwordConfirmationRef}
+                  id="password_confirmation"
+                  name="password_confirmation"
                   type="password"
                   required
                   className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"

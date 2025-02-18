@@ -5,6 +5,10 @@ import DefaultLayout from "./Components/DefaultLayout.jsx";
 import GuestLayout from "./Components/GuestLayout.jsx";
 import Users from './views/users.jsx';
 import Settings from './views/settings.jsx';
+import Intramurals from "./views/intramurals.jsx";
+import Dashboard from "./views/dashboard.jsx";
+import Report from "./views/report.jsx";
+import IntramuralForm from "./views/IntramuralForm.jsx";
 
 
 
@@ -15,6 +19,20 @@ const router = createBrowserRouter ([
         element: <DefaultLayout/>,
         children: [
             {
+                path: '/dashboard',
+                element: <Dashboard/>,
+            },
+            {
+                path: '/intramurals',
+                element: <Intramurals/>,
+                children: [ 
+                    {
+                        path: '/intramurals/add',
+                        element: <IntramuralForm/> 
+                    }
+                ]
+            },
+            {
                 path: '/users',
                 element: <Users/>,
             },
@@ -22,6 +40,12 @@ const router = createBrowserRouter ([
                 path: '/settings',
                 element: <Settings/>,
             },
+            {
+                path: '/report',
+                element: <Report/>,
+            },
+            
+
                     
         ]
     },

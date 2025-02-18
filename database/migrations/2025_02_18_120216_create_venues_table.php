@@ -10,14 +10,13 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('venues', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('email')->unique();
-            $table->string('role')->default('user')->after('email');
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
+            $table->string('location'); //location of 
+            $table->string('type'); //indoor or outdoor
+            $table->foreignId('intrams_id');
+            $table->foreign('intrams_id')->references('id')->on('intramural_game');
             $table->timestamps();
         });
     }
@@ -27,6 +26,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('venues');
     }
 };
