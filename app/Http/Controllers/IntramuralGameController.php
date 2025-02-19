@@ -13,12 +13,8 @@ class IntramuralGameController extends Controller
     public function index()
     {
         //
-        try {
-            return response()->json(IntramuralGame::all(), 200);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-
+        $games = IntramuralGame::all();
+        return response()->json($games, 200);
     }
 
     /**
@@ -74,13 +70,13 @@ class IntramuralGameController extends Controller
         //
         $request->validate([
             'name' => ['required', 'string', 'max: 100'],
-            'date' => ['required', 'date'],
+            'year' => ['required'],
         ]);
 
         $game = IntramuralGame::findOrFail($id);
         $game->update([
             'name' => $request->input('name'),
-            'date' => $request->input('date'),
+            'year' => $request->input('year'),
         ]);
 
         return response()->json(['message' =>'Game updated successfully']);
@@ -92,8 +88,14 @@ class IntramuralGameController extends Controller
     public function destroy(string $id)
     {
         //
-        $game = IntramuralGame::findOrFail($id);
-        $game->delete();
-        return response()->json(null, 204);
+        try {
+            $game = IntramuralGame::findOrFail($id);
+            $game->delete();
+            return response()->json(['message' => 'intramural game deleted successfully.'], 204);    
+        }
+        catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'intramural game not found'], 404);
+        }
+        
     }
 }

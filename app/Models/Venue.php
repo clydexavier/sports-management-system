@@ -9,7 +9,7 @@ class Venue extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'year', 'type', 'intrams_id'];
+    protected $fillable = ['name', 'location', 'type', 'intrams_id'];
     public function intramural_game()
     {
         return $this->belongsTo(IntramuralGame::class);
