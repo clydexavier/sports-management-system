@@ -54,6 +54,8 @@ class IntramuralGameController extends Controller
     public function show(string $id)
     {
         //
+        $game = IntramuralGame::findOrFail($id);
+        return response()->json($game);
     }
 
     /**
@@ -70,6 +72,18 @@ class IntramuralGameController extends Controller
     public function update(Request $request, string $id)
     {
         //
+        $request->validate([
+            'name' => ['required', 'string', 'max: 100'],
+            'date' => ['required', 'date'],
+        ]);
+
+        $game = IntramuralGame::findOrFail($id);
+        $game->update([
+            'name' => $request->input('name'),
+            'date' => $request->input('date'),
+        ]);
+
+        return response()->json(['message' =>'Game updated successfully']);
     }
 
     /**

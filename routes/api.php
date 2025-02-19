@@ -17,23 +17,29 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+//user routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('logout', [AuthController::class, 'logout']);
 
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-
     Route::apiResource('/users', UserController::class);
 });
 
 
-//user routes
+//public routes
 Route::post('login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
 
-//intramural routes
-Route::get('/intramurals', [IntramuralGameController::class, 'index']);
-Route::post('/intramurals', [IntramuralGameController::class, 'store']);
-Route::delete('/intramurals/{id}', [IntramuralGameController::class, 'destroy']);
+//admin routes
+Route::middleware(['auth:sanctum', 'admin'])->group(function (){
+    //intramurals
+    Route::post('/intramurals', [IntramuralGameController::class, 'store']); //add new intramural
+    Route::get('/intramurals', [IntramuralGameController::class, 'index']); //show all intramural
+    Route::delete('/intramurals/{id}', [IntramuralGameController::class, 'destroy']); //delete intramural
+    Route::get('/intramurals/{id}', [IntramuralGameController::class, 'show']); //target specific intramural
+    Route::put('/intramurals/{id}', [IntramuralGameController::class, 'update']); // Update game details
+});
+
 

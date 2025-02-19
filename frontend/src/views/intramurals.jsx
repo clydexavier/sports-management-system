@@ -15,11 +15,11 @@ export default function Intramurals() {
 
 
     const getIntramurals = () => {
-        setLoading(true)
+        setLoading(true);
         axiosClient.get('/intramurals')
           .then(({ data }) => {
             setLoading(false)
-            setUsers(data.data)
+            setIntramurals(data)
           })
           .catch((error) => {
             const response = error.response
@@ -37,7 +37,8 @@ export default function Intramurals() {
         <div className="card animated fadeInDown">
           <table>
             <thead>
-            <tr>
+            <tr>   
+              <th>ID</th>
               <th>Name</th>
               <th>Year</th>
             </tr>
@@ -59,9 +60,9 @@ export default function Intramurals() {
                   <td>{i.name}</td>
                   <td>{i.year}</td>
                   <td>
-                    <Link className="btn-edit" to={'/intramurals/' + u.id}>Edit</Link>
+                    <Link className="btn-edit" to={'/intramurals/' + i.id}>Edit</Link>
                     &nbsp;
-                    <button className="btn-delete" onClick={ev => onDeleteClick(u)}>Delete</button>
+                    <button className="btn-delete" onClick={ev => onDeleteClick(i)}>Delete</button>
                   </td>
                 </tr>
               ))}
