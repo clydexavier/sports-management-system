@@ -47,6 +47,7 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function (){
     Route::prefix('intramurals/{intrams_id}')->group(function () {
         Route::get('/venues', [VenueController::class, 'index']);  // List venues for a game
         Route::post('/venues', [VenueController::class, 'store']); // Add a venue to a game
+        
         Route::delete('/venues/{id}', [VenueController::class, 'destroy']); //delete intramural
         Route::get('/venues/{id}', [VenueController::class, 'show']); //target specific intramural
         Route::put('/venues/{id}', [VenueController::class, 'update']); // Update game details

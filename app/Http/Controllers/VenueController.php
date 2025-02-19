@@ -12,11 +12,12 @@ class VenueController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(string $intrams_id)
     {
         //
-        $venues = Venue::all();
-        return response()->json($venues, 200);
+        $intramural = IntramuralGame::findOrFail($intrams_id);
+        $venues = Venue::where('intrams_id', $intrams_id)->get();
+        return response()->json($venues);
     }
 
     /**
@@ -30,21 +31,21 @@ class VenueController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, string $intrams_id)
     {
         //
         $validated = $request->validate([
             'name' => ['required'],
             'location' => ['required'],
             'type' => ['required'],
-            'intrams_id' => ['required', 'exists:intramural_games,id']
         ]);
     
+        $intramural = IntramuralGame::findOrFail($intrams_id);
         $venue = Venue::create([
-            'name' => $request->name,
-            'location' => $request->location,
-            'type' => $request->type,
-            'intrams_id' => $request->intrams_id,
+            'name' => $validated['name'],
+            'location' => $validated['location'],
+            'type' => $validated['type'],
+            'intrams_id' => $intrams_id,
         ]);
         return response()->json($venue, 201);
 
@@ -53,11 +54,13 @@ class VenueController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(string $intrams_id, string $id)
     {
-        //
-        
-        $venue = Venue::findOrFail($id);
+        // Find the venue with the given ID and ensure it belongs to the correct intrams_id
+        $venue = Venue::where('id', $id)
+                    ->where('intrams_id', $intrams_id)
+                    ->firstOrFail();
+
         return response()->json($venue);
     }
 
@@ -72,40 +75,37 @@ class VenueController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $intrams_id, string $id)
     {
         //
-        $request->validate([
+        $validated = $request->validate([
             'name' => ['required'],
             'location' => ['required'],
             'type' => ['required'], //outdoor or indoor
-            'intrams_id' => ['required', 'exists:intramural_games,id']
         ]);
+        $venue = Venue::where('id', $id)
+                    ->where('intrams_id', $intrams_id)
+                    ->firstOrFail();
 
-        $venue = Venue::findOrFail(id);
         $venue->update([
-            'name' => $request->input('name'),
-            'location' => $request->input('location'),
-            'type' => $request->input('type'),
-            'intrams_id' => $request->input('intrams_id'),
+            'name' => $validated['name'],
+            'location' => $validated['location'],
+            'type' => $validated['type'],
+            'intrams_id' => $intrams_id,
         ]);
-
         return response()->json(['message' =>'Venue updated successfully']);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(string $intrams_id,string $id)
     {
         //
-        try {
-            $venue = Venue::findOrFail($id);
-            $venue->delete();
-            return response()->json(['message' => 'venue deleted successfully.'], 204);    
-        }
-        catch (ModelNotFoundException $e) {
-            return response()->json(['error' => 'venue not found'], 404);
-        }
+        $venue = Venue::where('id', $id)
+                    ->where('intrams_id', $intrams_id)
+                    ->firstOrFail();
+        $venue->delete();
+        return response()->json(['message' => 'venue deleted successfully.'], 204);       
     }
 }

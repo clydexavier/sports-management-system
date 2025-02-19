@@ -12,6 +12,6 @@ class Venue extends Model
     protected $fillable = ['name', 'location', 'type', 'intrams_id'];
     public function intramural_game()
     {
-        return $this->belongsTo(IntramuralGame::class);
+        return $this->belongsTo(IntramuralGame::class, 'intrams_id');
     }
 }
