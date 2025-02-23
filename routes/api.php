@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\IntramuralGameController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VenueController;
+use App\Http\Controllers\OverallTeamController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -41,16 +42,27 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function (){
     Route::get('/intramurals', [IntramuralGameController::class, 'index']); //show all intramural
     Route::delete('/intramurals/{id}', [IntramuralGameController::class, 'destroy']); //delete intramural
     Route::get('/intramurals/{id}', [IntramuralGameController::class, 'show']); //target specific intramural
-    Route::put('/intramurals/{id}', [IntramuralGameController::class, 'update']); // Update game details
+    Route::patch('/intramurals/{id}', [IntramuralGameController::class, 'update']); // Update game details
 
-    //venues
+
+    //routes inside intramural games
     Route::prefix('intramurals/{intrams_id}')->group(function () {
+        //venues
         Route::get('/venues', [VenueController::class, 'index']);  // List venues for a game
         Route::post('/venues', [VenueController::class, 'store']); // Add a venue to a game
-        
+
         Route::delete('/venues/{id}', [VenueController::class, 'destroy']); //delete intramural
         Route::get('/venues/{id}', [VenueController::class, 'show']); //target specific intramural
-        Route::put('/venues/{id}', [VenueController::class, 'update']); // Update game details
+        Route::patch('/venues/{id}', [VenueController::class, 'update']); // Update game details
+
+        //overall teams
+        Route::get('/overall_teams', [OverallTeamController::class, 'index']);
+        Route::post('/overall_teams', [OverallTeamController::class, 'store']);
+        Route::get('/overall_teams/{id}', [OverallTeamController::class, 'show']);
+        Route::patch('/overall_teams/{id}/update_info', [OverallTeamController::class, 'update_info']); // update basic team info
+        Route::patch('/overall_teams/{id}/update_medal', [OverallTeamController::class, 'update_medal']); //updated total medals of a team
+        Route::delete('/overall_teams/{id}', [OverallTeamController::class, 'destroy']);
+        
     });
 });
 

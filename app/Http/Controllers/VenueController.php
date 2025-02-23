@@ -15,7 +15,6 @@ class VenueController extends Controller
     public function index(string $intrams_id)
     {
         //
-        $intramural = IntramuralGame::findOrFail($intrams_id);
         $venues = Venue::where('intrams_id', $intrams_id)->get();
         return response()->json($venues);
     }
@@ -61,7 +60,7 @@ class VenueController extends Controller
                     ->where('intrams_id', $intrams_id)
                     ->firstOrFail();
 
-        return response()->json($venue);
+        return response()->json($venue, 200);
     }
 
     /**
@@ -79,21 +78,16 @@ class VenueController extends Controller
     {
         //
         $validated = $request->validate([
-            'name' => ['required'],
-            'location' => ['required'],
-            'type' => ['required'], //outdoor or indoor
+            'name' => ['sometimes'],
+            'location' => ['sometimes'],
+            'type' => ['sometimes'], //outdoor or indoor
         ]);
         $venue = Venue::where('id', $id)
                     ->where('intrams_id', $intrams_id)
                     ->firstOrFail();
 
-        $venue->update([
-            'name' => $validated['name'],
-            'location' => $validated['location'],
-            'type' => $validated['type'],
-            'intrams_id' => $intrams_id,
-        ]);
-        return response()->json(['message' =>'Venue updated successfully']);
+        $venue->update($validated);
+        return response()->json(['message' =>'Venue updated successfully', 'Venue' => $venue], 200);
     }
 
     /**

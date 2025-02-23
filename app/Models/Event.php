@@ -11,5 +11,10 @@ class Event extends Model
 
     protected $fillable = ['name', 'venue_id', 'category', 'golds', 'silver', 'bronze'];
 
+    protected $casts = [
+        'golds' => 'integer',
+        'silver' => 'integer',
+        'bronze' => 'integer'
+    ];
 
 }

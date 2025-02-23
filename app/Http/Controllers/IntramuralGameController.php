@@ -68,18 +68,15 @@ class IntramuralGameController extends Controller
     public function update(Request $request, string $id)
     {
         //
-        $request->validate([
-            'name' => ['required', 'string', 'max: 100'],
-            'year' => ['required'],
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max: 100'],
+            'year' => ['sometimes', 'max:4'],
         ]);
 
         $game = IntramuralGame::findOrFail($id);
-        $game->update([
-            'name' => $request->input('name'),
-            'year' => $request->input('year'),
-        ]);
+        $game->update($validated);
 
-        return response()->json(['message' =>'Game updated successfully']);
+        return response()->json(['message' =>'Game updated successfully', 'game' => $game], 200);
     }
 
     /**

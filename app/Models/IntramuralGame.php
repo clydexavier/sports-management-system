@@ -15,4 +15,8 @@ class IntramuralGame extends Model
     {
         return $this->hasMany(Venue::class);
     }
+
+    public function teams() {
+        return $this->hasMany(OverallTeam::class);
+    }
 }
