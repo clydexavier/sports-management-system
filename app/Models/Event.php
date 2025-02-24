@@ -17,4 +17,8 @@ class Event extends Model
         'bronze' => 'integer'
     ];
 
+    public function venue() {
+        return $this->belongsTo(Venue::class, 'venue_id');
+    }
+
 }

@@ -12,11 +12,10 @@ class VenueController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(string $intrams_id)
-    {
+    public function index(string $intrams_id) {
         //
         $venues = Venue::where('intrams_id', $intrams_id)->get();
-        return response()->json($venues);
+        return response()->json($venues, 200);
     }
 
     /**

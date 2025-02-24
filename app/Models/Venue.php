@@ -10,8 +10,12 @@ class Venue extends Model
     use HasFactory;
 
     protected $fillable = ['name', 'location', 'type', 'intrams_id'];
-    public function intramural_game()
-    {
+    
+    public function intramural_game() {
         return $this->belongsTo(IntramuralGame::class, 'intrams_id');
+    }
+
+    public function events() {
+        return $this->hasMany(Event::class);
     }
 }

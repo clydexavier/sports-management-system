@@ -38,7 +38,7 @@ class OverallTeamController extends Controller
     }
 
     public function show(string $intrams_id, string $id) {
-        $overall_team = OverallTeam::where('id', $id) -> where('intrams_id', $intrams_id)->firstOrFail();;
+        $overall_team = OverallTeam::where('id', $id) -> where('intrams_id', $intrams_id)->firstOrFail();
         
         return response()->json($overall_team, 200);
     }

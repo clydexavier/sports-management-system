@@ -54,14 +54,25 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function (){
         Route::delete('/venues/{id}', [VenueController::class, 'destroy']); //delete intramural
         Route::get('/venues/{id}', [VenueController::class, 'show']); //target specific intramural
         Route::patch('/venues/{id}', [VenueController::class, 'update']); // Update game details
+            
+            // Events nested under Venues
+            Route::prefix('/venues/{venue_id}/events')->group(function () {
+            Route::get('/', [EventController::class, 'index']);  // List events in a venue
+            Route::post('/', [EventController::class, 'store']); // Add an event to a venue
+            Route::get('/{id}', [EventController::class, 'show']); // Show a specific event
+            Route::patch('/{id}', [EventController::class, 'update']); // Update event details
+            Route::delete('/{id}', [EventController::class, 'destroy']); // Delete an event
+    });
 
         //overall teams
         Route::get('/overall_teams', [OverallTeamController::class, 'index']);
         Route::post('/overall_teams', [OverallTeamController::class, 'store']);
         Route::get('/overall_teams/{id}', [OverallTeamController::class, 'show']);
         Route::patch('/overall_teams/{id}/update_info', [OverallTeamController::class, 'update_info']); // update basic team info
-        Route::patch('/overall_teams/{id}/update_medal', [OverallTeamController::class, 'update_medal']); //updated total medals of a team
+        Route::patch('/overall_teams/{id}/update_medal', [OverallTeamController::class, 'update_medal']); //updated total medals of a team  
         Route::delete('/overall_teams/{id}', [OverallTeamController::class, 'destroy']);
+
+
         
     });
 });
