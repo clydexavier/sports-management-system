@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Venue;
 use App\Models\IntramuralGame;
-//use App\Http\Controllers\IntramuralGameController;
 use Illuminate\Http\Request;
 
 class VenueController extends Controller

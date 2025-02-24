@@ -5,6 +5,8 @@ use App\Http\Controllers\IntramuralGameController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VenueController;
 use App\Http\Controllers\OverallTeamController;
+use App\Http\Controllers\EventController;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -55,13 +57,13 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function (){
         Route::get('/venues/{id}', [VenueController::class, 'show']); //target specific intramural
         Route::patch('/venues/{id}', [VenueController::class, 'update']); // Update game details
             
-            // Events nested under Venues
-            Route::prefix('/venues/{venue_id}/events')->group(function () {
-            Route::get('/', [EventController::class, 'index']);  // List events in a venue
-            Route::post('/', [EventController::class, 'store']); // Add an event to a venue
-            Route::get('/{id}', [EventController::class, 'show']); // Show a specific event
-            Route::patch('/{id}', [EventController::class, 'update']); // Update event details
-            Route::delete('/{id}', [EventController::class, 'destroy']); // Delete an event
+        // Events nested under Venues
+        Route::prefix('/venues/{venue_id}')->group(function () {
+            Route::get('/events', [EventController::class, 'index']);
+            Route::post('/events', [EventController::class, 'store']);
+            Route::get('/events/{id}', [EventController::class, 'show']);
+            Route::patch('/events/{id}', [EventController::class, 'update']);
+            Route::delete('/events/{id}', [EventController::class, 'destroy']);
     });
 
         //overall teams
