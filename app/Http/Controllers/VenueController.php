@@ -44,8 +44,8 @@ class VenueController extends Controller
             'type' => $validated['type'],
             'intrams_id' => $intrams_id,
         ]);
-        return response()->json($venue, 201);
 
+        return response()->json($venue, 201);
     }
 
     /**

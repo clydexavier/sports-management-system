@@ -5,11 +5,15 @@ import { useStateContext } from "../contexts/contextprovider";
 
 import logo from '../assets/react.svg';
 
-// icons
+//Admin Icons
 import { MdMenuOpen, MdOutlineDashboard } from "react-icons/md";
-import { FaProductHunt, FaUserCircle } from "react-icons/fa";
-import { TbReportSearch } from "react-icons/tb";
-import { CiSettings } from "react-icons/ci";
+import { MdOutlinePlace } from "react-icons/md";
+import { MdOutlineSportsGymnastics } from "react-icons/md";
+import { RiTeamLine } from "react-icons/ri";
+import { MdSportsBasketball } from "react-icons/md";
+import { IoDocumentSharp } from "react-icons/io5";
+import { FaRegUserCircle } from "react-icons/fa";
+
 import { LogOutIcon } from "lucide-react";
 
 const menuItems = [
@@ -19,23 +23,29 @@ const menuItems = [
     route: '/dashboard'
   },
   {
-    label: 'Intramurals',
-    route: '/intramurals'
+    icon: <MdOutlinePlace size={30} color="white" />,
+    label: 'Venues',
+    route: '/venue'
   },
   {
-    icon: <FaProductHunt size={30} color="white" />,
-    label: 'Users',
-    route: '/users'
+    icon: <MdOutlineSportsGymnastics size={30} color="white" />,
+    label: 'Varsity Players',
+    route: '/varsity'
   },
   {
-    icon: <CiSettings size={30} color="white" />,
-    label: 'Settings',
-    route: '/settings'
+    icon: <MdSportsBasketball size={30} color="white" />,
+    label: 'Sports',
+    route: '/sport'
   },
   {
-    icon: <TbReportSearch size={30} color="white" />,
-    label: 'Report',
-    route: '/report'
+    icon: <RiTeamLine size={30} color="white" />,
+    label: 'Teams',
+    route: '/team'
+  },
+  {
+    icon: <IoDocumentSharp size={30} color="white" />,
+    label: 'Documents',
+    route: '/document'
   }
 ];
 
@@ -85,17 +95,24 @@ export default function Sidebar() {
             </Link>
           </li>
         ))}
+        <li>
+          <div onClick={onLogout} className="px-3 py-2 my-2 rounded-md duration-300 cursor-pointer flex gap-2 items-center relative group hover:bg-[#c8c8c833]">
+            <div><LogOutIcon size={30} color="white" /></div>
+            <p className={`${!open && 'w-0 translate-x-24'} text-white bg-opacity-0 duration-500 overflow-hidden`}>Logout</p>
+              <p className={`${open && 'hidden'} absolute left-32 shadow-md rounded-md
+              w-0 p-0 text-black bg-opacity-0 duration-100 overflow-hidden group-hover:w-fit group-hover:p-2 group-hover:left-16`}>
+                Logout
+              </p>
+          </div>
+        </li>
       </ul>
 
       {/* Footer */}
       <div className="flex items-center gap-2 px-3 py-2">
-        <FaUserCircle size={30} color="white" />
+        <FaRegUserCircle size={30} color="white" />
         <div className={`leading-5 ${!open && 'w-0 translate-x-24'} duration-500 overflow-hidden`}>
           <p className="text-white">{user?.name}</p>
         </div>
-        <button className="px-4 py-2 rounded-lg duration-300 cursor-pointer hover:bg-[#c8c8c833]" onClick={onLogout}>
-          <LogOutIcon size={30} color="white" />
-        </button>
       </div>
     </nav>
   );

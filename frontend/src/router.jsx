@@ -1,19 +1,21 @@
 import { createBrowserRouter } from "react-router-dom";
-import Login from './views/login.jsx';
-import Register from './views/register.jsx';
+import Login from './views/Public/login.jsx';
+import Register from './views/Public/register.jsx';
 import DefaultLayout from "./Components/DefaultLayout.jsx";
 import GuestLayout from "./Components/GuestLayout.jsx";
-import Users from './views/users.jsx';
-import Settings from './views/settings.jsx';
-import Intramurals from "./views/intramurals.jsx";
-import Dashboard from "./views/dashboard.jsx";
-import Report from "./views/report.jsx";
-import IntramuralForm from "./views/IntramuralForm.jsx";
+
+//admin views
+import Venue from "./views/Admin/venue.jsx";
+import Sport from "./views/Admin/sports.jsx";
+import Varsity  from "./views/Admin/varsity.jsx";
+import Document from "./views/Admin/documents.jsx"
+import Dashboard from "./views/Admin/dashboard.jsx";
+import Team from "./views/Admin/teams.jsx";
+
 
 
 
 const router = createBrowserRouter ([
-
     {
         path: '/',
         element: <DefaultLayout/>,
@@ -23,30 +25,25 @@ const router = createBrowserRouter ([
                 element: <Dashboard/>,
             },
             {
-                path: '/intramurals',
-                element: <Intramurals/>,
-                children: [ 
-                    {
-                        path: '/intramurals/add',
-                        element: <IntramuralForm/> 
-                    }
-                ]
+                path: '/venue',
+                element: <Venue/>,
             },
             {
-                path: '/users',
-                element: <Users/>,
+                path: '/team',
+                element: <Team/>,
             },
             {
-                path: '/settings',
-                element: <Settings/>,
+                path: '/sport',
+                element: <Sport/>,
             },
             {
-                path: '/report',
-                element: <Report/>,
+                path: '/varsity',
+                element: <Varsity/>,
             },
-            
-
-                    
+            {
+                path: '/document',
+                element: <Document/>,
+            },
         ]
     },
 

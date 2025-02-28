@@ -21,20 +21,17 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-//user routes
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('logout', [AuthController::class, 'logout']);
-
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
-    Route::apiResource('/users', UserController::class);
-});
-
 
 //public routes
 Route::post('login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
+
+//user routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('logout', [AuthController::class, 'logout']);
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/user', [UserController::class, 'show']);
+});
 
 //admin routes
 Route::middleware(['auth:sanctum', 'admin'])->group(function (){
@@ -45,7 +42,6 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function (){
     Route::delete('/intramurals/{id}', [IntramuralGameController::class, 'destroy']); //delete intramural
     Route::get('/intramurals/{id}', [IntramuralGameController::class, 'show']); //target specific intramural
     Route::patch('/intramurals/{id}', [IntramuralGameController::class, 'update']); // Update game details
-
 
     //routes inside intramural games
     Route::prefix('intramurals/{intrams_id}')->group(function () {
@@ -73,6 +69,8 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function (){
         Route::patch('/overall_teams/{id}/update_info', [OverallTeamController::class, 'update_info']); // update basic team info
         Route::patch('/overall_teams/{id}/update_medal', [OverallTeamController::class, 'update_medal']); //updated total medals of a team  
         Route::delete('/overall_teams/{id}', [OverallTeamController::class, 'destroy']);
+
+        //varsity players
 
 
         

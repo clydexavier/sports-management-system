@@ -1,9 +1,9 @@
 import axios from "axios";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import axiosClient from "../axiosClient";
-import { useStateContext } from "../contexts/contextprovider";
-import logo from '../assets/react.svg';
+import axiosClient from "../../axiosClient";
+import { useStateContext } from "../../contexts/contextprovider";
+import logo from "../../assets/react.svg"
 
 export default function login(){
 
@@ -12,7 +12,6 @@ export default function login(){
 
     const {setUser, setToken} = useStateContext();
     const [errorMessage, setErrorMessage] = useState("");
-
 
 
     const Submit =  (ev) =>{
@@ -29,8 +28,6 @@ export default function login(){
         const response = err.response;
         if(response && response.status === 422){
             setErrorMessage("Invalid login, please try again.");
-            console.log("hey");
-            console.log(response.data.errors);
         }
     });
     }

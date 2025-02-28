@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
+use Illuminate\Http\Request;
+
 use App\Models\User;
 
 class UserController extends Controller
@@ -14,9 +16,9 @@ class UserController extends Controller
      */
     public function index()
     {
-        return UserResource::collection(
-            User::query()->orderBy('id','desc')->get()
-        );
+        
+        $users = User::all();
+        return response()->json($users, 200);
     }
 
     /**
@@ -33,9 +35,10 @@ class UserController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(User $user)
-    {
-        return new UserResource($user);
+    public function show(Request $request)
+    {   
+        $user = $request->user(); // Same as Auth::user()
+    return response()->json($user);
     }
 
     /**

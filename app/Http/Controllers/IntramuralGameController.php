@@ -1,8 +1,9 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreIntramuralGameRequest;
+use App\Http\Requests\UpdateIntramuralGameRequest;
 use App\Models\IntramuralGame;
 
 class IntramuralGameController extends Controller
@@ -28,18 +29,11 @@ class IntramuralGameController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreIntramuralGameRequest $request)
     {
         //
-        $request->validate([
-            "name" => "required",
-            'year' => ['required', 'digits:4', 'integer', 'min:2000'],
-        ]);
-
-        $intramural = IntramuralGame::create([
-            'name' => $request->name,
-            'year' => $request->year,
-        ]);
+        $validated = $request->validated();
+        $intramural = IntramuralGame::create($data);
 
         return response()->json($intramural, 201);
     }
@@ -51,7 +45,7 @@ class IntramuralGameController extends Controller
     {
         //
         $game = IntramuralGame::findOrFail($id);
-        return response()->json($game);
+        return response()->json($game, 200);
     }
 
     /**
@@ -65,14 +59,10 @@ class IntramuralGameController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateIntramuralGameRequest $request, string $id)
     {
         //
-        $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max: 100'],
-            'year' => ['sometimes', 'max:4'],
-        ]);
-
+        $validated = $request->validated();
         $game = IntramuralGame::findOrFail($id);
         $game->update($validated);
 

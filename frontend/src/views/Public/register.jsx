@@ -1,10 +1,10 @@
 import axios from "axios";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import axiosClient from "../axiosClient";
-import { useStateContext } from "../contexts/contextprovider";
+import axiosClient from "../../axiosClient";
+import { useStateContext } from "../../contexts/contextprovider";
 import { useForm } from 'react-hook-form';
-import logo from '../assets/react.svg';
+import logo from "../../assets/react.svg"
 
 export default function register(){
 

@@ -8,12 +8,14 @@ use App\Models\Event;
 class EventController extends Controller
 {
     //
-    public function index(string $intrams_id, string $venue_id) {
+    public function index(string $intrams_id, string $venue_id) 
+    {
         $events = Event::where('venue_id', $venue_id)->get();
         return response()->json($events, 200);
     }
 
-    public function store(Request $request,string $intrams_id, string $venue_id) {
+    public function store(Request $request,string $intrams_id, string $venue_id) 
+    {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:50'],
             'category' => ['required', 'string', 'max:50'],
@@ -36,12 +38,14 @@ class EventController extends Controller
         return response()->json($event, 201);
     }
 
-    public function show(string $intrams_id, string $venue_id, string $id) {
+    public function show(string $intrams_id, string $venue_id, string $id) 
+    {
         $event = Event::where('id', $id)->where('venue_id', $venue_id)->firstOrFail();
         return response()->json($event, 200);
     }
 
-    public function update(Request $request, string $intrams_id ,string $venue_id, string $id) {
+    public function update(Request $request, string $intrams_id ,string $venue_id, string $id) 
+    {
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:50'],
             'category' => ['sometimes', 'string', 'max:50'],
@@ -55,7 +59,8 @@ class EventController extends Controller
         return response()->json(['message' => 'Event info updated successfully', 'event' => $event], 200);
     }
 
-    public function destroy(string $intrams_id, string $venue_id, string $id) {
+    public function destroy(string $intrams_id, string $venue_id, string $id) 
+    {
         $event = Event::where('id', $id)->where('venue_id', $venue_id)->firstOrFail();
         $event->delete();
         return response()->json(['message' => 'Venue deleted successfully.'], 204);
