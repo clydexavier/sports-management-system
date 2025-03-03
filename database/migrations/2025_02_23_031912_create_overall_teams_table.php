@@ -18,8 +18,8 @@ return new class extends Migration
             $table->integer('total_gold');
             $table->integer('total_silver');
             $table->integer('total_bronze');
-            $table->foreignId('intrams_id');
-            $table->foreign('intrams_id')->references('id')->on('intramural_game');
+            $table->unsignedBigInteger('intrams_id');             
+            $table->foreign('intrams_id')->references('id')->on('intramural_games');
             $table->timestamps();
         });
     }

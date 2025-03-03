@@ -51,7 +51,7 @@ const menuItems = [
 
 export default function Sidebar() {
   const { user, setUser, setToken } = useStateContext();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const location = useLocation(); // Get current route
 
   const onLogout = async (ev) => {
