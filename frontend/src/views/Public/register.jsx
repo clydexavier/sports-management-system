@@ -6,7 +6,7 @@ import { useStateContext } from "../../contexts/contextprovider";
 import { useForm } from 'react-hook-form';
 import logo from "../../assets/react.svg"
 
-export default function register(){
+export default function register() {
 
     const nameRef = useRef();
     const emailRef = useRef();
@@ -16,38 +16,9 @@ export default function register(){
     const {setUser, setToken} = useStateContext();
     const [errorMessage, setErrorMessage] = useState("");
 
-    //validates email
-    const isValidEmail = (email) => {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    };
-
     const Submit =  (ev) =>{
         ev.preventDefault();
-
-        const name = nameRef.current.value;
-        const email = emailRef.current.value;
-        const password = passwordRef.current.value;
-        const password_confirmation = passwordConfirmationRef.current.value;
-
-        
-        if(!name || !email || !password || !password_confirmation) {
-            setErrorMessage("All fields are required.")
-            return;
-        }
-
-        if (!isValidEmail(email)) {
-            setErrorMessage("Please enter a valid email address.");
-            return;
-        }
-
-       /* if (password !== confirmPassword) {
-            setErrorMessage("Passwords do not match.");
-            return;
-        }*/
-
-         // Clear error message if all validations pass
-         setErrorMessage("");
-
+        setErrorMessage("");
 
         const payload = {
             name: nameRef.current.value,
@@ -61,8 +32,7 @@ export default function register(){
     }).catch(err => {
         const response = err.response;
         if(response && response.status === 422){
-            setErrorMessage("Registration failed. Please check your inputs.");
-            console.log(response.data.errors);
+            setErrorMessage(Object.values(response.data.errors)[0][0]);
         }
     });
 }

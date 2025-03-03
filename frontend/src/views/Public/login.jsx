@@ -1,4 +1,3 @@
-import axios from "axios";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import axiosClient from "../../axiosClient";
@@ -13,23 +12,23 @@ export default function login(){
     const {setUser, setToken} = useStateContext();
     const [errorMessage, setErrorMessage] = useState("");
 
-
     const Submit =  (ev) =>{
-        ev.preventDefault();
-        const payload = {
-            email: emailRef.current.value,
-            password: passwordRef.current.value,
-        }
-        axiosClient.post("/login",payload).then(({data})=>{
-            setUser(data.user);
-            setToken(data.token);
-            setErrorMessage("");
-    }).catch(err => {
+      ev.preventDefault();
+      const payload = {
+          email: emailRef.current.value,
+          password: passwordRef.current.value,
+      }
+
+      axiosClient.post("/login",payload).then(({data})=>{
+        setUser(data.user);
+        setToken(data.token);
+        setErrorMessage("");
+      }).catch(err => {
         const response = err.response;
         if(response && response.status === 422){
-            setErrorMessage("Invalid login, please try again.");
+          setErrorMessage(response.data.message);
         }
-    });
+      });
     }
 
     return(
