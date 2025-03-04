@@ -6,6 +6,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VenueController;
 use App\Http\Controllers\OverallTeamController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\VarsityPlayerController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -22,63 +23,61 @@ use Illuminate\Support\Facades\Route;
 */
 
 
-//public routes
-Route::post('login', [AuthController::class, 'login']);
-Route::post('register', [AuthController::class, 'register']);
-
-//user routes
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('logout', [AuthController::class, 'logout']);
-    Route::get('/users', [UserController::class, 'index']);
-    Route::get('/user', [UserController::class, 'show']);
-});
-
-//admin routes
-Route::middleware(['auth:sanctum', 'admin'])->group(function (){
+//version 1 of all the routes
+Route::prefix('v1')->group(function () {
     
-    //intramurals
-    Route::post('/intramurals', [IntramuralGameController::class, 'store']); //add new intramural
-    Route::get('/intramurals', [IntramuralGameController::class, 'index']); //show all intramural
-    Route::delete('/intramurals/{id}', [IntramuralGameController::class, 'destroy']); //delete intramural
-    Route::get('/intramurals/{id}', [IntramuralGameController::class, 'show']); //target specific intramural
-    Route::patch('/intramurals/{id}', [IntramuralGameController::class, 'update']); // Update game details
+    // Public routes
+    Route::post('login', [AuthController::class, 'login']);
+    Route::post('register', [AuthController::class, 'register']);
 
-    //routes inside intramural games
-    Route::prefix('intramurals/{intrams_id}')->group(function () {
-        //venues
-        Route::get('/venues', [VenueController::class, 'index']);  // List venues for a game
-        Route::post('/venues', [VenueController::class, 'store']); // Add a venue to a game
-
-        Route::delete('/venues/{id}', [VenueController::class, 'destroy']); //delete intramural
-        Route::get('/venues/{id}', [VenueController::class, 'show']); //target specific intramural
-        Route::patch('/venues/{id}', [VenueController::class, 'update']); // Update game details
-            
-        // Events nested under Venues
-        Route::prefix('/venues/{venue_id}')->group(function () {
-            Route::get('/events', [EventController::class, 'index']);
-            Route::post('/events', [EventController::class, 'store']);
-            Route::get('/events/{id}', [EventController::class, 'show']);
-            Route::patch('/events/{id}', [EventController::class, 'update']);
-            Route::delete('/events/{id}', [EventController::class, 'destroy']);
+    // User routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('logout', [AuthController::class, 'logout']);
+        Route::get('users', [UserController::class, 'index']);
+        Route::get('user', [UserController::class, 'show']);
     });
 
-        //overall teams
-        Route::get('/overall_teams', [OverallTeamController::class, 'index']);
-        Route::post('/overall_teams', [OverallTeamController::class, 'store']);
-        Route::get('/overall_teams/{id}', [OverallTeamController::class, 'show']);
-        Route::patch('/overall_teams/{id}/update_info', [OverallTeamController::class, 'update_info']); // update basic team info
-        Route::patch('/overall_teams/{id}/update_medal', [OverallTeamController::class, 'update_medal']); //updated total medals of a team  
-        Route::delete('/overall_teams/{id}', [OverallTeamController::class, 'destroy']);
+    // Admin routes
+    Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+        // Intramurals
+        Route::post('intramurals/create', [IntramuralGameController::class, 'store']);
+        Route::get('intramurals', [IntramuralGameController::class, 'index']);
+        Route::delete('intramurals/{id}', [IntramuralGameController::class, 'destroy']);
+        Route::get('intramurals/{id}', [IntramuralGameController::class, 'show']);
+        Route::patch('intramurals/{id}/edit', [IntramuralGameController::class, 'update']);
 
-        //varsity players
+        // Routes inside intramural games
+        Route::prefix('intramurals/{intrams_id}')->group(function () {
+            // Venues
+            Route::get('venues', [VenueController::class, 'index']);
+            Route::post('venues/create', [VenueController::class, 'store']);
+            Route::delete('venues/{id}', [VenueController::class, 'destroy']);
+            Route::get('venues/{id}', [VenueController::class, 'show']);
+            Route::patch('venues/{id}/edit', [VenueController::class, 'update']);
 
-        //documents
+                // Events nested under Venues
+                Route::prefix('venues/{venue_id}')->group(function () {
+                    Route::get('events', [EventController::class, 'index']);
+                    Route::post('events/create', [EventController::class, 'store']);
+                    Route::get('events/{id}', [EventController::class, 'show']);
+                    Route::patch('events/{id}', [EventController::class, 'update']);
+                    Route::delete('events/{id}', [EventController::class, 'destroy']);
+                });
 
-        //sports
+            // Overall teams
+            Route::get('overall_teams', [OverallTeamController::class, 'index']);
+            Route::post('overall_teams/create', [OverallTeamController::class, 'store']);
+            Route::get('overall_teams/{id}', [OverallTeamController::class, 'show']);
+            Route::patch('overall_teams/{id}/edit', [OverallTeamController::class, 'update_info']);
+            Route::patch('overall_teams/{id}/update_medal', [OverallTeamController::class, 'update_medal']);
+            Route::delete('overall_teams/{id}', [OverallTeamController::class, 'destroy']);
 
-
-        
+            // Varsity players
+            Route::get('varsity_players', [VarsityPlayerController::class, 'index']);
+            Route::post('varsity_players/create', [VarsityPlayerController::class, 'store']);
+            Route::get('varsity_players/{id}', [VarsityPlayerController::class, 'show']);
+            Route::patch('varsity_players/{id}', [VarsityPlayerController::class, 'update']);
+            Route::delete('varsity_players/{id}', [VarsityPlayerController::class, 'destroy']);
+        });
     });
 });
-
-

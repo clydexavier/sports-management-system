@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\UserRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
-class UpdateUserRequest extends FormRequest
+class StoreUserRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -15,16 +15,22 @@ class UpdateUserRequest extends FormRequest
         return true;
     }
 
-    
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,'.$this->id,
+            'email' => 'required|email|unique:users,email',
             'password' => [
+                'required',
                 Password::min(8)
                 ->letters()
             ]
+
         ];
     }
 }

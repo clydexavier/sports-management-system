@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use App\Http\Requests\LoginRequest;
+use App\Http\Requests\AuthRequests\LoginRequest;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\AuthRequests\RegisterRequest;
 
 class AuthController extends Controller
 {
@@ -26,7 +26,6 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token
         ]);
-
     }
 
     public function register(RegisterRequest $request)

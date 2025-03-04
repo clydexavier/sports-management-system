@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\IntramuralRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateIntramuralGameRequest extends FormRequest
+class StoreIntramuralGameRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,8 +23,8 @@ class UpdateIntramuralGameRequest extends FormRequest
     {
         return [
             //
-            'name' => ['sometimes', 'string', 'max:255'],
-            'year' => ['sometimes', 'integer', 'min:2000', 'digits:4']
+            'name' => ['required', 'string', 'max:255'],
+            'year' => ['required', 'integer', 'min:2000', 'digits:4']
         ];
     }
 }

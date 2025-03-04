@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Venue;
 use App\Models\IntramuralGame;
+use App\Http\Requests\VenueRequests\StoreVenueRequest;
+use App\Http\Requests\VenueRequests\UpdateVenueRequest;
+
 use Illuminate\Http\Request;
 
 class VenueController extends Controller
@@ -16,34 +19,14 @@ class VenueController extends Controller
         $venues = Venue::where('intrams_id', $intrams_id)->get();
         return response()->json($venues, 200);
     }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request, string $intrams_id)
+    public function store(StoreVenueRequest $request)
     {
         //
-        $validated = $request->validate([
-            'name' => ['required'],
-            'location' => ['required'],
-            'type' => ['required'],
-        ]);
-    
-        $intramural = IntramuralGame::findOrFail($intrams_id);
-        $venue = Venue::create([
-            'name' => $validated['name'],
-            'location' => $validated['location'],
-            'type' => $validated['type'],
-            'intrams_id' => $intrams_id,
-        ]);
+        $validated = $request->validated();
+        $venue = Venue::create($validated);
 
         return response()->json($venue, 201);
     }
@@ -61,29 +44,15 @@ class VenueController extends Controller
         return response()->json($venue, 200);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Venue $venue)
-    {
-        //
-    }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $intrams_id, string $id)
+    public function update(UpdateVenueRequest $request)
     {
         //
-        $validated = $request->validate([
-            'name' => ['sometimes'],
-            'location' => ['sometimes'],
-            'type' => ['sometimes'], //outdoor or indoor
-        ]);
-        $venue = Venue::where('id', $id)
-                    ->where('intrams_id', $intrams_id)
-                    ->firstOrFail();
-
+        $validated = $request->validated();
+        $venue = Venue::findOrFail($validated['id']);
         $venue->update($validated);
         return response()->json(['message' =>'Venue updated successfully', 'Venue' => $venue], 200);
     }

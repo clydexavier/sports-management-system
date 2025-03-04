@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\AuthRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Password;
 
-class StoreIntramuralGameRequest extends FormRequest
+class LoginRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,9 +23,8 @@ class StoreIntramuralGameRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
-            'name' => ['required', 'string', 'max:255'],
-            'year' => ['required', 'integer', 'min:2000', 'digits:4']
+            'email' => ['required', 'min:3', 'max:30'],
+            'password' => ['required', 'min:8', 'max:100']
         ];
     }
 }
