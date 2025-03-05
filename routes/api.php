@@ -55,15 +55,6 @@ Route::prefix('v1')->group(function () {
             Route::get('venues/{id}', [VenueController::class, 'show']);
             Route::patch('venues/{id}/edit', [VenueController::class, 'update']);
 
-                // Events nested under Venues
-                Route::prefix('venues/{venue_id}')->group(function () {
-                    Route::get('events', [EventController::class, 'index']);
-                    Route::post('events/create', [EventController::class, 'store']);
-                    Route::get('events/{id}', [EventController::class, 'show']);
-                    Route::patch('events/{id}', [EventController::class, 'update']);
-                    Route::delete('events/{id}', [EventController::class, 'destroy']);
-                });
-
             // Overall teams
             Route::get('overall_teams', [OverallTeamController::class, 'index']);
             Route::post('overall_teams/create', [OverallTeamController::class, 'store']);

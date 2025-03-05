@@ -18,7 +18,7 @@ class Event extends Model
     ];
 
     public function venue() {
-        return $this->belongsTo(Venue::class, 'venue_id');
+        return $this->belongsTo(IntramuralGame::class, 'intrams_id');
     }
 
 }
