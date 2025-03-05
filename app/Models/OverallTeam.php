@@ -28,7 +28,9 @@ class OverallTeam extends Model
     protected $casts = [
         'total_gold' => 'integer',
         'total_silver' => 'integer',
-        'total_bronze' => 'integer'
+        'total_bronze' => 'integer',
+        'name' => 'string',
+        'teama_logo_path' => 'string',
     ];
 
     public function intramural_game()
