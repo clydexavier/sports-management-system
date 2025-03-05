@@ -233,6 +233,5 @@ class VenueControllerTest extends TestCase
                  ->assertJson(['error' => 'unauthorized']);
 
         $this->assertDatabaseHas('venues', ['id' => $venue->id]);
-
     }
 }
