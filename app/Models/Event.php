@@ -12,7 +12,7 @@ class Event extends Model
     protected $fillable = ['name', 'intrams_id', 'category', 'type','gold', 'silver', 'bronze'];
 
     protected $casts = [
-        'golds' => 'integer',
+        'gold' => 'integer',
         'silver' => 'integer',
         'bronze' => 'integer'
     ];

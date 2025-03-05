@@ -63,6 +63,13 @@ Route::prefix('v1')->group(function () {
             Route::patch('overall_teams/{id}/update_medal', [OverallTeamController::class, 'update_medal']);
             Route::delete('overall_teams/{id}', [OverallTeamController::class, 'destroy']);
 
+            // Events
+            Route::get('events', [EventController::class, 'index']);
+            Route::post('events/create', [EventController::class, 'store']);
+            Route::get('events/{id}', [EventController::class, 'show']);
+            Route::patch('events/{id}/edit', [EventController::class, 'update']);
+            Route::delete('events/{id}', [EventController::class, 'destroy']);
+
             // Varsity players
             Route::get('varsity_players', [VarsityPlayerController::class, 'index']);
             Route::post('varsity_players/create', [VarsityPlayerController::class, 'store']);

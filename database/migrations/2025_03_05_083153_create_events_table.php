@@ -19,7 +19,7 @@ return new class extends Migration
             //$table->foreignId('tournament_manager')->constrained()->onDelete('cascade'); //(user) tournament manager in charge og the event
             $table->string('category'); // men and women
             $table->string('type'); //sports, dance, music
-            $table->integer('golds'); //number of gold/s to be won
+            $table->integer('gold'); //number of gold/s to be won
             $table->integer('silver');//number of silver/s to be won
             $table->integer('bronze'); //number of bronze/s to be won
             $table->timestamps();

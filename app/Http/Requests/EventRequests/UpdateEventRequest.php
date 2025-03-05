@@ -3,6 +3,8 @@
 namespace App\Http\Requests\EventRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
 
 class UpdateEventRequest extends FormRequest
 {
@@ -33,7 +35,7 @@ class UpdateEventRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:50'],
             'category' => ['sometimes', 'string', 'max:50'],
             'type' => ['sometimes', 'string', 'max:50'],
-            'golds' => ['sometimes', 'integer', 'min:0'],
+            'gold' => ['sometimes', 'integer', 'min:0'],
             'silver' => ['sometimes', 'integer', 'min:0'],
             'bronze' => ['sometimes', 'integer', 'min:0'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],

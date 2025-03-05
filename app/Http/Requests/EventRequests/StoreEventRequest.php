@@ -33,7 +33,7 @@ class StoreEventRequest extends FormRequest
             'name' => ['required', 'string', 'max:50'],
             'category' => ['required', 'string', 'max:50'],
             'type' => ['required', 'string', 'max:50'],
-            'golds' => ['required', 'integer', 'min:0'],
+            'gold' => ['required', 'integer', 'min:0'],
             'silver' => ['required', 'integer', 'min:0'],
             'bronze' => ['required', 'integer', 'min:0'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],

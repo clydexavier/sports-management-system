@@ -33,7 +33,7 @@ class EventController extends Controller
     public function show(ShowEventRequest $request) 
     {
         $validated = $request->validated();
-        $event = Event::where('id', $validated->id)->where('intrams_id', $validated->intrams_id)->firstOrFail();
+        $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
         return response()->json($event, 200);
     }
 
@@ -41,15 +41,15 @@ class EventController extends Controller
     {
         $validated = $request->validated();
 
-        $event = Event::where('id', $validated->id)->where('intrams_id', $validated->intrams_id)->firstOrFail();
+        $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
         $event->update($validated);
-        return response()->json(['message' => 'Event info updated successfully', 'event' => $event], 200);
+        return response()->json(['message' => 'Event updated successfully', 'event' => $event], 200);
     }
 
     public function destroy(DestroyEventRequest $request) 
     {
         $validated = $request-> validated();
-        $event = Event::where('id', $validated->id)->where('venue_id', $validated->intrams_id)->firstOrFail();
+        $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
         $event->delete();
         return response()->json(['message' => 'Venue deleted successfully.'], 204);
     }
