@@ -9,7 +9,7 @@ class Event extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'venue_id', 'category', 'golds', 'silver', 'bronze'];
+    protected $fillable = ['name', 'intrams_id', 'category', 'type','gold', 'silver', 'bronze'];
 
     protected $casts = [
         'golds' => 'integer',
@@ -17,7 +17,7 @@ class Event extends Model
         'bronze' => 'integer'
     ];
 
-    public function venue() {
+    public function intramural_game() {
         return $this->belongsTo(IntramuralGame::class, 'intrams_id');
     }
 
