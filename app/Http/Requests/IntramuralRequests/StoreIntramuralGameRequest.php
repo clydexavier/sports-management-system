@@ -24,7 +24,7 @@ class StoreIntramuralGameRequest extends FormRequest
         return [
             //
             'name' => ['required', 'string', 'max:255'],
-            'year' => ['required', 'integer', 'min:2000', 'digits:4']
+            'year' => ['required', 'integer', 'digits:4']
         ];
     }
 }
