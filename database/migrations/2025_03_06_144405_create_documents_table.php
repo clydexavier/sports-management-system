@@ -11,15 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('players', function (Blueprint $table) {
+        Schema::create('documents', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('id_number')->unique();
-            $table->boolean('is_varsity');
-            $table->string('sport');
-            $table->foreignId('team_id')->nullable()->constrained('overall_teams')->onDelete('set null');
+            $table->string('file_path'); // Relative path for Laravel's local storage
+            $table->string('mime_type')->nullable(); // Store file type (PDF, DOCX, etc.)
+            $table->integer('size')->nullable(); // Store file size in KB
             $table->foreignId('intrams_id')->constrained('intramural_games')->onDelete('cascade');
-
             $table->timestamps();
         });
     }
@@ -29,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('players');
+        Schema::dropIfExists('documents');
     }
 };

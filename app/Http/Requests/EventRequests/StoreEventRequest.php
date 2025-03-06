@@ -14,7 +14,8 @@ class StoreEventRequest extends FormRequest
         return true;
     }
 
-    protected function prepareForValidation() {
+    protected function prepareForValidation() 
+    {
         $this->merge([
             'intrams_id' => $this->route('intrams_id'),
         ]);

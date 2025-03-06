@@ -7,6 +7,7 @@ use App\Http\Controllers\VenueController;
 use App\Http\Controllers\OverallTeamController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\VarsityPlayerController;
+use App\Http\Controllers\DocumentController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -85,6 +86,14 @@ Route::prefix('v1')->group(function () {
                 });
 
                 // Documents (Placeholder for future routes)
+                Route::prefix('documents')->group(function () {
+                    Route::get('/', [DocumentController::class, 'index']); // List all documents
+                    Route::post('create', [DocumentController::class, 'store']); // Upload a document
+                    Route::get('{id}', [DocumentController::class, 'show']); // Get a specific document
+                    Route::patch('{id}/edit', [DocumentController::class, 'update']); // Update document details
+                    Route::delete('{id}', [DocumentController::class, 'destroy']); // Delete a document
+                    Route::get('{id}/download', [DocumentController::class, 'download']); // Download a document ✅
+                });
             });
         });
     });

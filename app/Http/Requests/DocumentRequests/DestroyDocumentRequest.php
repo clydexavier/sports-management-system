@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\EventRequests;
+namespace App\Http\Requests\DocumentRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 
-class UpdateEventRequest extends FormRequest
+class DestroyDocumentRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -33,16 +33,10 @@ class UpdateEventRequest extends FormRequest
     {
         return [
             //
-            'name' => ['sometimes', 'string', 'max:50'],
-            'category' => ['sometimes', 'string', 'max:50'],
-            'type' => ['sometimes', 'string', 'max:50'],
-            'gold' => ['sometimes', 'integer', 'min:0'],
-            'silver' => ['sometimes', 'integer', 'min:0'],
-            'bronze' => ['sometimes', 'integer', 'min:0'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
             'id' => [
                 'required',
-                Rule::exists('events', 'id')->where(function ($query) {
+                Rule::exists('documents', 'id')->where(function ($query) {
                     return $query->where('intrams_id', $this->intrams_id);
                 }),
             ],

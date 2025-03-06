@@ -11,19 +11,28 @@ class IntramuralGame extends Model
 
     protected $fillable = ['name', 'year'];
 
-    public function venues() {
+    public function venues() 
+    {
         return $this->hasMany(Venue::class);
     }
 
-    public function teams() {
+    public function teams() 
+    {
         return $this->hasMany(OverallTeam::class);
     }
 
-    public function events() {
+    public function events() 
+    {
         return $this->hasMany(Event::class);
     }
 
-    public function players() {
+    public function players() 
+    {
         return $this->hasMany(Player::class);
+    }
+
+    public function documents() 
+    {
+        return $this->hasMany(Document::class);
     }
 }
