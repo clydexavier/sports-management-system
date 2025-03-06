@@ -19,11 +19,11 @@ class IntramuralGame extends Model
         return $this->hasMany(OverallTeam::class);
     }
 
-    public function varsity_players() {
-        return $this->hasMany(VarsityPlayer::class);
-    }
-
     public function events() {
         return $this->hasMany(Event::class);
+    }
+
+    public function players() {
+        return $this->hasMany(Player::class);
     }
 }

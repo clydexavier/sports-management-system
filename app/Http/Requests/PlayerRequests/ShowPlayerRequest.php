@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\VarsityPlayerRequests;
+namespace App\Http\Requests\PlayerRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreVarsityPlayerRequest extends FormRequest
+class ShowPlayerRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

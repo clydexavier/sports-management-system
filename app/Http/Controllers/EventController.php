@@ -8,8 +8,6 @@ use App\Http\Requests\EventRequests\ShowEventRequest;
 use App\Http\Requests\EventRequests\UpdateEventRequest;
 use App\Http\Requests\EventRequests\DestroyEventRequest;
 
-
-use App\Models\Venue;
 use App\Models\Event;
 
 class EventController extends Controller
@@ -40,7 +38,6 @@ class EventController extends Controller
     public function update(UpdateEventRequest $request) 
     {
         $validated = $request->validated();
-
         $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
         $event->update($validated);
         return response()->json(['message' => 'Event updated successfully', 'event' => $event], 200);
@@ -51,6 +48,6 @@ class EventController extends Controller
         $validated = $request-> validated();
         $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
         $event->delete();
-        return response()->json(['message' => 'Venue deleted successfully.'], 204);
+        return response()->json(['message' => 'Event deleted successfully.'], 204);
     }
 }

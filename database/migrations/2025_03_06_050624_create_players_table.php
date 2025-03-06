@@ -14,11 +14,15 @@ return new class extends Migration
         Schema::create('players', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('id_number');
+            $table->string('id_number')->unique();
             $table->boolean('is_varsity');
             $table->string('sport');
-            $table->unsignedBigInteger('team_id');             
-            $table->foreign('team_id')->references('id')->on('overall_teams');
+
+            // team_id should be nullable for varsity players
+            $table->foreignId('team_id')->nullable()->constrained('overall_teams')->onDelete('set null');
+
+            // intrams_id reference
+            $table->foreignId('intrams_id')->constrained('intramural_games')->onDelete('cascade');
 
             $table->timestamps();
         });

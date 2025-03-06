@@ -16,6 +16,11 @@ class EventControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $intrams = IntramuralGame::factory()->create();
+        
+        $intrams_extra = IntramuralGame::factory()->create();
+
+        Event::factory()->count(3)->create(['intrams_id' => $intrams_extra->id]);
+
         Event::factory()->count(3)->create(['intrams_id' => $intrams->id]);
 
         $response = $this->actingAs($admin)->getJson("/api/v1/intramurals/{$intrams->id}/events");
