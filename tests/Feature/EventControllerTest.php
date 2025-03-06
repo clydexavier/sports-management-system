@@ -59,6 +59,43 @@ class EventControllerTest extends TestCase
         $this->assertDatabaseHas('events', ['name' => 'Basketball Tournament']);
     }
 
+    public function test_store_event_invalid_intrams_id_if_admin() {
+        $admin = User::factory()->admin()->create();
+        $intrams = IntramuralGame::factory()->create();
+        $invalid_id = $intrams->id +69;
+
+        $data = [
+            'name' => 'Basketball Tournament',
+            'category' => "Men's",
+            'type' => 'Sports',
+            'gold' => 3,
+            'silver' => 2,
+            'bronze' => 1,
+            'intrams_id' => $intrams->id,
+        ];
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/intramurals/{$invalid_id}/events/create", $data);
+        $response->assertStatus(400);
+    }
+
+    public function test_store_event_invalid_payload_if_admin() {
+        $admin = User::factory()->admin()->create();
+        $intrams = IntramuralGame::factory()->create();
+        $invalid_id = $intrams-> id + 6969696;
+        $data = [
+            'name' => 'Basketball Tournament',
+            'category' => "Men's",
+            'type' => 'Sports',
+            //'gold' => 3,
+            'silver' => 2,
+            'bronze' => 1,
+        ];
+
+        $response = $this->actingAs($admin)->postJson("/api/v1/intramurals/{$intrams->id}/events/create", $data);
+        $response->dump();
+        $response->assertStatus(400);
+    }
+
     public function test_store_event_if_user()
     {
         $user = User::factory()->create();
@@ -90,6 +127,26 @@ class EventControllerTest extends TestCase
 
         $response->assertStatus(200)
                  ->assertJson(['id' => $event->id, 'name' => $event->name]);
+    }
+
+    public function test_get_specific_event_invalid_event_id_if_admin() {
+        $admin = User::factory()->admin()->create();
+        $intrams = IntramuralGame::factory()->create();
+        
+        $event = Event::factory()->create(['intrams_id' => $intrams->id]);
+        $invalid_id = $event->id + 69;
+        $response = $this->actingAs($admin)->getJson("/api/v1/intramurals/{$intrams->id}/events/{$invalid_id}");
+        $response->assertStatus(400);
+    }
+
+    public function test_get_specific_event_invalid_intrams_id_if_admin() {
+        $admin = User::factory()->admin()->create();
+        $intrams = IntramuralGame::factory()->create();
+        $invalid_id = $intrams->id+69;
+        $event = Event::factory()->create(['intrams_id' => $intrams->id]);
+
+        $response = $this->actingAs($admin)->getJson("/api/v1/intramurals/{$invalid_id}/events/{$event->id}");
+        $response->assertStatus(400);
     }
 
     public function test_get_specific_event_if_user()
