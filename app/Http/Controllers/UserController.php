@@ -38,7 +38,7 @@ class UserController extends Controller
     public function show(Request $request)
     {   
         $user = $request->user(); // Same as Auth::user()
-    return response()->json($user);
+        return response()->json($user);
     }
 
     /**
@@ -60,7 +60,6 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         $user->delete();
-
         return response('',204);
     }
 }

@@ -38,6 +38,7 @@ class EventController extends Controller
     public function update(UpdateEventRequest $request) 
     {
         $validated = $request->validated();
+
         $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
         $event->update($validated);
         return response()->json(['message' => 'Event updated successfully', 'event' => $event], 200);

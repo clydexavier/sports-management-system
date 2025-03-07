@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Services\ChallongeService;
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -12,6 +14,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         //
+        $this->app->singleton(ChallongeService::class, function ($app) {
+            return new ChallongeService();
+        });
     }
 
     /**
