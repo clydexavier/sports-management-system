@@ -18,6 +18,7 @@ class StoreEventRequest extends FormRequest
     {
         $this->merge([
             'intrams_id' => $this->route('intrams_id'),
+            'challonge_event_id',
         ]);
     }
 
@@ -38,6 +39,8 @@ class StoreEventRequest extends FormRequest
             'silver' => ['required', 'integer', 'min:0'],
             'bronze' => ['required', 'integer', 'min:0'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
+            'tournament_type' => ['required',  'string', 'max:50'],
+            'hold_third_place_match' => ['sometimes', 'boolean'],
         ];
     }
 }

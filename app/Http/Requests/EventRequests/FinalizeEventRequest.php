@@ -3,10 +3,8 @@
 namespace App\Http\Requests\EventRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
-
-class ShowEventRequest extends FormRequest
+class FinalizeEventRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -15,6 +13,7 @@ class ShowEventRequest extends FormRequest
     {
         return true;
     }
+
 
     protected function prepareForValidation() 
     {
@@ -39,8 +38,6 @@ class ShowEventRequest extends FormRequest
                     return $query->where('intrams_id', $this->intrams_id);
                 }),
             ],
-            'include_participants' => ['sometimes', 'boolean'],
-            'include_matches' => ['sometimes', 'boolean'],
         ];
     }
 }

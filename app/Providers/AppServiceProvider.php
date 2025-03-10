@@ -5,7 +5,6 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use App\Services\ChallongeService;
 
-
 class AppServiceProvider extends ServiceProvider
 {
     /**

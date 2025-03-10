@@ -9,7 +9,7 @@ class Event extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'intrams_id', 'category', 'type','gold', 'silver', 'bronze'];
+    protected $fillable = ['name', 'intrams_id', 'challonge_event_id', 'tournament_type', 'hold_third_place_match','category', 'type','gold', 'silver', 'bronze'];
 
     protected $casts = [
         'gold' => 'integer',

@@ -39,6 +39,7 @@ class UpdateEventRequest extends FormRequest
             'gold' => ['sometimes', 'integer', 'min:0'],
             'silver' => ['sometimes', 'integer', 'min:0'],
             'bronze' => ['sometimes', 'integer', 'min:0'],
+            'tournament_type' => ['sometimes', 'string', 'max:50'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
             'id' => [
                 'required',

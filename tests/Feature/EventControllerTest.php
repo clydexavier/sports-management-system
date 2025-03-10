@@ -2,15 +2,27 @@
 
 namespace Tests\Feature;
 
+use App\Services\ChallongeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\Event;
 use App\Models\IntramuralGame;
 use App\Models\User;
+use Mockery;
 
 class EventControllerTest extends TestCase
 {
     use RefreshDatabase;
+    
+    protected $mockChallonge;
+
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->mockChallonge = Mockery::mock(ChallongeService::class);
+        $this->app->instance(ChallongeService::class, $this->mockChallonge);
+
+    }
 
     public function test_index_events_if_admin()
     {
@@ -22,9 +34,8 @@ class EventControllerTest extends TestCase
         Event::factory()->count(3)->create(['intrams_id' => $intrams_extra->id]);
 
         Event::factory()->count(3)->create(['intrams_id' => $intrams->id]);
-
+        $this->mockChallonge->shouldReceive('getTournament')->andReturn([]);
         $response = $this->actingAs($admin)->getJson("/api/v1/intramurals/{$intrams->id}/events");
-
         $response->assertStatus(200)
                  ->assertJsonCount(3);
     }
@@ -50,12 +61,20 @@ class EventControllerTest extends TestCase
             'name' => 'Basketball Tournament',
             'category' => "Men's",
             'type' => 'Sports',
+            'tournament_type' => 'single elimination',
+            'hold_third_place_match' => true,
             'gold' => 3,
             'silver' => 2,
             'bronze' => 1,
             'intrams_id' => $intrams->id,
         ];
+        // Mock expectations
+        // Mock the ChallongeService correctly
+        $this->mockChallonge->shouldReceive('createTournament')
+            ->once()
+            ->andReturn(['tournament' => ['id' => 12345]]); // Ensure correct structure
 
+        $this->mockChallonge->shouldReceive('getTournament')->once()->andReturn(['tournament' => ['id' => 12345]]);
         $response = $this->actingAs($admin)->postJson("/api/v1/intramurals/{$intrams->id}/events/create", $data);
 
         $response->assertStatus(201)
@@ -97,7 +116,6 @@ class EventControllerTest extends TestCase
         ];
 
         $response = $this->actingAs($admin)->postJson("/api/v1/intramurals/{$intrams->id}/events/create", $data);
-        $response->dump();
         $response->assertStatus(400);
     }
 
@@ -126,13 +144,20 @@ class EventControllerTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $intrams = IntramuralGame::factory()->create();
-        $event = Event::factory()->create(['intrams_id' => $intrams->id]);
+        $event = Event::factory()->create(['intrams_id' => $intrams->id, 'challonge_event_id' => 12345]);
+
+        // Mock Challonge service correctly
+        $this->mockChallonge->shouldReceive('getTournament')
+            ->once() // Expect it to be called once
+            ->with(12345, ['include_participants' => false, 'include_matches' => false])
+            ->andReturn(['tournament' => ['name' => 'Basketball Tournament']]);
 
         $response = $this->actingAs($admin)->getJson("/api/v1/intramurals/{$intrams->id}/events/{$event->id}");
 
         $response->assertStatus(200)
-                 ->assertJson(['id' => $event->id, 'name' => $event->name]);
+                ->assertJsonFragment(['Basketball Tournament']); // Match expected name
     }
+
 
     public function test_get_specific_event_invalid_event_id_if_admin() {
         $admin = User::factory()->admin()->create();
@@ -174,13 +199,21 @@ class EventControllerTest extends TestCase
 
         $updateData = ['name' => 'Updated Event Name'];
 
+        // Mock Challonge API if needed
+        $this->mockChallonge->shouldReceive('updateTournament')
+            ->once()
+            ->with($event->challonge_event_id, ['name' => 'Updated Event Name'])
+            ->andReturn(['tournament' => ['name' => 'Updated Event Name']]);
+
+        // Send the request
         $response = $this->actingAs($admin)->patchJson("/api/v1/intramurals/{$intrams->id}/events/{$event->id}/edit", $updateData);
 
         $response->assertStatus(200)
-                 ->assertJson(['message' => 'Event updated successfully']);
+                ->assertJson(['message' => 'Event updated successfully']);
 
         $this->assertDatabaseHas('events', ['id' => $event->id, 'name' => 'Updated Event Name']);
     }
+
 
     public function test_update_event_if_user()
     {
@@ -202,11 +235,18 @@ class EventControllerTest extends TestCase
         $intrams = IntramuralGame::factory()->create();
         $event = Event::factory()->create(['intrams_id' => $intrams->id]);
 
+        // 🛠 Mock the Challonge API call
+        $this->mockChallonge->shouldReceive('deleteTournament')
+            ->once()
+            ->with($event->challonge_event_id)
+            ->andReturn(true); // Simulate successful deletion
+
         $response = $this->actingAs($admin)->deleteJson("/api/v1/intramurals/{$intrams->id}/events/{$event->id}");
 
         $response->assertStatus(204);
         $this->assertDatabaseMissing('events', ['id' => $event->id]);
     }
+
 
     public function test_delete_event_if_user()
     {

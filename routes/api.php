@@ -8,6 +8,7 @@ use App\Http\Controllers\OverallTeamController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\VarsityPlayerController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\BracketController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -67,13 +68,19 @@ Route::prefix('v1')->group(function () {
                     Route::delete('{id}', [OverallTeamController::class, 'destroy']);
                 });
 
-                // Events
+                // Events //fucntions as tournaments in challonge
                 Route::prefix('events')->group(function () {
+                    //local db
                     Route::get('/', [EventController::class, 'index']);
                     Route::post('create', [EventController::class, 'store']);
                     Route::get('{id}', [EventController::class, 'show']);
                     Route::patch('{id}/edit', [EventController::class, 'update']);
                     Route::delete('{id}', [EventController::class, 'destroy']);
+                    
+                    Route::post('{id}/start', [EventController::class, 'start']);
+                    Route::post('{id}/finalize', [EventController::class, 'finalize']);
+                    Route::post('{id}/reset', [EventController::class, 'reset']);
+
                 });
 
                 // Varsity Players

@@ -20,6 +20,9 @@ class EventFactory extends Factory
         return [
             'name' => $this->faker->sentence(3), 
             'intrams_id' => IntramuralGame::factory(),
+            'challonge_event_id' => $this->faker->unique()->numerify('######'),
+            'tournament_type' => $this->faker->randomElement(["single elimination", "double elimination"]),
+            'hold_third_place_match' => $this->faker->boolean(),
             'category' => $this->faker->randomElement(["Men's", "Women's"]),
             'type' => $this->faker->randomElement(['Sports', 'Dance', 'Music']),
             'gold' => $this->faker->numberBetween(0, 10),

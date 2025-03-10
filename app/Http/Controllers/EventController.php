@@ -1,54 +1,173 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-
+use App\Services\ChallongeService;
 use App\Http\Requests\EventRequests\StoreEventRequest;
 use App\Http\Requests\EventRequests\ShowEventRequest;
 use App\Http\Requests\EventRequests\UpdateEventRequest;
 use App\Http\Requests\EventRequests\DestroyEventRequest;
+use App\Http\Requests\EventRequests\StartEventRequest;
+use App\Http\Requests\EventRequests\FinalizeEventRequest;
+use App\Http\Requests\EventRequests\ResetEventRequest;
 
 use App\Models\Event;
 
 class EventController extends Controller
 {
-    //
-    public function index(string $intrams_id) 
+    protected $challonge;
+
+    public function __construct(ChallongeService $challonge)
     {
-        $events = Event::where('intrams_id', $intrams_id)->get();
-        return response()->json($events, 200);
+        $this->challonge = $challonge;
     }
 
-    public function store(StoreEventRequest $request) 
+    /**
+     * Retrieve all events linked to an intramural.
+     */
+    public function index(string $intrams_id, Request $request)
+    {
+        $events = Event::where('intrams_id', $intrams_id)->get();
+
+        $challongeTournaments = [];
+        // Fetch Challonge tournaments
+        $params = [
+            'state' => $request->query('state', 'all'),
+            'type' => $request->query('type', 'single_elimination')
+        ];
+        foreach ($events as $event) {
+            if ($event->challonge_event_id) {
+                $challongeTournaments[] = $this->challonge->getTournament($event->challonge_event_id, $params);
+            }
+        }
+        return response()->json($challongeTournaments, 200);
+    }
+
+    /**
+     * Create an event and sync it with Challonge.
+     */
+    public function store(StoreEventRequest $request)
     {
         $validated = $request->validated();
 
+        // Create tournament in Challonge
+        $challongeParams = [
+            'name' => $validated['name'],
+            'tournament_type' => $validated['tournament_type'],
+            'hold_third_place_match' => $validated['hold_third_place_match'] ?? false
+        ];
+        $challongeResponse = $this->challonge->createTournament($challongeParams);
+
+        // Extract the Challonge tournament ID
+        $challongeEventId = $challongeResponse['tournament']['id'] ?? null;
+
+        $this->challonge->getTournament($challongeEventId);
+
+        // Create event in our database with the Challonge event ID
+        $validated['challonge_event_id'] = $challongeEventId;
         $event = Event::create($validated);
 
         return response()->json($event, 201);
     }
-
-    public function show(ShowEventRequest $request) 
+    /**
+     * Show event details (including optional Challonge tournament data).
+     */
+    public function show(ShowEventRequest $request)
     {
         $validated = $request->validated();
+
         $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
-        return response()->json($event, 200);
+
+        // Fetch from Challonge
+        $params = [
+            'include_participants' => $request->query('include_participants', false),
+            'include_matches' => $request->query('include_matches', false)
+        ];
+        $challongeTournament = $this->challonge->getTournament($event->challonge_event_id, $params);
+        return response()->json($challongeTournament['tournament']['name'], 200);
     }
 
-    public function update(UpdateEventRequest $request) 
+    /**
+     * Update event and sync changes with Challonge.
+     */
+    public function update(UpdateEventRequest $request)
     {
         $validated = $request->validated();
 
         $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
+        
+
+        // Update tournament in Challonge
+        $challongeParams = [];
+        if (isset($validated['name'])) {
+            $challongeParams['name'] = $validated['name'];
+        }
+        
+        if (isset($validated['tournament_type'])) {
+            $challongeParams['tournament_type'] = $validated['tournament_type'];
+        }
+    
+        $challongeResponse = $this->challonge->updateTournament($event->challonge_event_id, $challongeParams);
+
         $event->update($validated);
-        return response()->json(['message' => 'Event updated successfully', 'event' => $event], 200);
+        return response()->json([
+            'message' => 'Event updated successfully',
+            'event' => $event,
+            'challonge_tournament' => $challongeResponse
+        ], 200);
     }
 
-    public function destroy(DestroyEventRequest $request) 
+    /**
+     * Delete an event and remove it from Challonge.
+     */
+    public function destroy(DestroyEventRequest $request)
     {
-        $validated = $request-> validated();
+        $validated = $request->validated();
+
         $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
+
+        // Delete from Challonge
+        $this->challonge->deleteTournament($event->challonge_event_id);
         $event->delete();
         return response()->json(['message' => 'Event deleted successfully.'], 204);
+    }
+
+    /**
+     * Start an event/tournament.
+     */
+    public function start(StartEventRequest $request)
+    {
+        $validated = $request->validated();
+        $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
+
+        $params = [
+            'include_participants' => $request->query('include_participants', false)
+        ];
+
+        $response = $this->challonge->startTournament($event->challonge_event_id, $params);
+        return response()->json($response);
+    }
+
+    /**
+     * Finalize an event/tournament.
+     */
+    public function finalize(FinalizeEventRequest $request)
+    {
+        $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
+
+        $response = $this->challonge->finalizeTournament($event->challonge_event_id);
+        return response()->json($response);
+    }
+
+    /**
+     * Reset an event/tournament.
+     */
+    public function reset(ResetEventRequest $request)
+    {
+        $validated = $request->validated();
+        $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
+        $response = $this->challonge->resetTournament($event->challonge_event_id);
+        return response()->json($response);
     }
 }

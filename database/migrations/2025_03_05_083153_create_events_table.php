@@ -16,6 +16,9 @@ return new class extends Migration
             $table->string('name');
             $table->foreignId('intrams_id');
             $table->foreign('intrams_id')->references('id')->on('intramural_games');
+            $table->string('challonge_event_id')->unique();
+            $table->string('tournament_type');
+            $table->boolean('hold_third_place_match');
             //$table->foreignId('tournament_manager')->constrained()->onDelete('cascade'); //(user) tournament manager in charge og the event
             $table->string('category'); // men and women
             $table->string('type'); //sports, dance, music
