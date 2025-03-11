@@ -14,7 +14,8 @@ class Event extends Model
     protected $casts = [
         'gold' => 'integer',
         'silver' => 'integer',
-        'bronze' => 'integer'
+        'bronze' => 'integer',
+        'hold_third_place_match' => 'boolean',
     ];
 
     public function intramural_game() {

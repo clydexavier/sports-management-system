@@ -41,7 +41,7 @@ class EventController extends Controller
                 $challongeTournaments[] = $this->challonge->getTournament($event->challonge_event_id, $params);
             }
         }
-        return response()->json($challongeTournaments, 200);
+        return response()->json([ 'events'=> $events,  'challonges' =>$challongeTournaments, ], 200);
     }
 
     /**
@@ -53,7 +53,7 @@ class EventController extends Controller
 
         // Create tournament in Challonge
         $challongeParams = [
-            'name' => $validated['name'],
+            'name' => $validated['category']. " " .$validated['name'],
             'tournament_type' => $validated['tournament_type'],
             'hold_third_place_match' => $validated['hold_third_place_match'] ?? false
         ];
@@ -99,18 +99,12 @@ class EventController extends Controller
         
 
         // Update tournament in Challonge
-        $challongeParams = [];
-        if (isset($validated['name'])) {
-            $challongeParams['name'] = $validated['name'];
-        }
-        
-        if (isset($validated['tournament_type'])) {
-            $challongeParams['tournament_type'] = $validated['tournament_type'];
-        }
-    
+        $event->update($validated);
+        $challongeParams = ['name' => $event->category. " " .$event->name, 'tournament_type' => $event -> tournament_type];
+       
         $challongeResponse = $this->challonge->updateTournament($event->challonge_event_id, $challongeParams);
 
-        $event->update($validated);
+        
         return response()->json([
             'message' => 'Event updated successfully',
             'event' => $event,

@@ -19,6 +19,8 @@ class StoreEventRequest extends FormRequest
         $this->merge([
             'intrams_id' => $this->route('intrams_id'),
             'challonge_event_id',
+            'hold_third_place_match' => filter_var($this->hold_third_place_match, FILTER_VALIDATE_BOOLEAN),
+
         ]);
     }
 

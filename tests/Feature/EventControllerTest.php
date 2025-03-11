@@ -203,7 +203,7 @@ class EventControllerTest extends TestCase
         $this->mockChallonge->shouldReceive('updateTournament')
             ->once()
             ->with($event->challonge_event_id, ['name' => 'Updated Event Name'])
-            ->andReturn(['tournament' => ['name' => 'Updated Event Name']]);
+            ->andReturn(['tournament' => ['name' => $event->category. " ". 'Updated Event Name']]);
 
         // Send the request
         $response = $this->actingAs($admin)->patchJson("/api/v1/intramurals/{$intrams->id}/events/{$event->id}/edit", $updateData);
@@ -235,11 +235,10 @@ class EventControllerTest extends TestCase
         $intrams = IntramuralGame::factory()->create();
         $event = Event::factory()->create(['intrams_id' => $intrams->id]);
 
-        // 🛠 Mock the Challonge API call
         $this->mockChallonge->shouldReceive('deleteTournament')
             ->once()
             ->with($event->challonge_event_id)
-            ->andReturn(true); // Simulate successful deletion
+            ->andReturn(true);
 
         $response = $this->actingAs($admin)->deleteJson("/api/v1/intramurals/{$intrams->id}/events/{$event->id}");
 
