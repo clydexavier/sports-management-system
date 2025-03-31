@@ -6,6 +6,9 @@ use Illuminate\Validation\Rule;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
 
 class RegisterRequest extends FormRequest
 {
@@ -17,6 +20,14 @@ class RegisterRequest extends FormRequest
         return true;
     }
 
+    public function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'message' => 'Validation errors',
+            'errors' => $validator->errors()
+        ], 422));
+    }
     /**
      * Get the validation rules that apply to the request.
      *

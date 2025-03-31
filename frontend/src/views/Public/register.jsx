@@ -29,40 +29,16 @@ export default function register() {
         axiosClient.post("/register",payload).then(({data})=>{
             setUser(data.user);
             setToken(data.token);
-    }).catch(err => {
+      }).catch(err => {
         const response = err.response;
         if(response && response.status === 422){
             setErrorMessage(Object.values(response.data.errors)[0][0]);
         }
     });
-}
+  }
 
     return(
 
-        /*<div className="login-signup-container">
-            <div className="login-header">
-                <h1>
-                    Sports Management System
-                </h1>
-                <div className="form">
-                    <form onSubmit={Submit}>
-                    {errorMessage && (
-                            <p className="error-message" style={{ color: "red" }}>
-                                {errorMessage}
-                            </p>
-                        )}
-                        <input ref={nameRef} type="name" placeholder="Name" />
-                        <input ref={emailRef} type="email" placeholder="Email"/>
-                        <input ref={passwordRef} type="password" placeholder="Password" />
-                        <input ref={confirmPasswordRef} type="password" placeholder="Confirm Password" />
-                        <button className="login-signup-btn">Register</button>
-                        <p className="login-signup-next">
-                            Already Have An Account? <Link to= '/login'>Login</Link>
-                        </p>
-                    </form>
-                </div>
-            </div>
-        </div>*/
         <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           <img

@@ -4,6 +4,10 @@ namespace App\Http\Requests\IntramuralRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+
 
 class UpdateIntramuralGameRequest extends FormRequest
 {
@@ -30,12 +34,28 @@ class UpdateIntramuralGameRequest extends FormRequest
     {
         return [
             //
-            'name' => ['sometimes', 'string', 'max:255'],
-            'year' => ['sometimes', 'integer', 'min:2000', 'digits:4'],
             'id' => [
                 'required',
                 Rule::exists('intramural_games', 'id'),
             ],
+            'name' => ['sometimes', 'string', 'max:255'], // Ensure it's a string
+            'location' => ['sometimes', 'string', 'max:255'], 
+            'status' => ['sometimes', 'in:pending,in progress,completed'],
+            'start_date' => ['sometimes', 'date', 'date_format:Y-m-d'], // Ensure valid date
+            'end_date' => ['sometimes', 'date', 'date_format:Y-m-d', 'after_or_equal:start_date'],
         ];
+    }
+    /**
+     * Handle a failed validation attempt.
+     *
+     * @param Validator $validator
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'message' => 'Validation errors',
+            'errors' => $validator->errors()
+        ], 422));
     }
 }

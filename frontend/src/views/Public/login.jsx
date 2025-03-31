@@ -32,30 +32,6 @@ export default function login(){
     }
 
     return(
-        /*<div className="login-signup-container">
-            <div className="login-header">
-                <h1>
-                    Sports Management System
-                </h1>
-                <div className="form">
-                    <form onSubmit={Submit}>
-                    {errorMessage && (
-                            <p className="error-message" style={{ color: "red" }}>
-                                {errorMessage}
-                            </p>
-                        )}
-                        <input ref={emailRef} type="email" placeholder="Email"/>
-                        <input ref={passwordRef} type="password" placeholder="Password" />
-                        <button className="login-signup-btn">Login</button>
-                        <p className="login-signup-next">
-                            Don't Have An Account? <Link to= '/register'>Register</Link>
-                        </p>
-                    </form>
-                </div>
-            </div>
-        </div>
-        */
-       
        <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           <img

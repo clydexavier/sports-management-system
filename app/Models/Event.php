@@ -18,8 +18,14 @@ class Event extends Model
         'hold_third_place_match' => 'boolean',
     ];
 
-    public function intramural_game() {
+    public function intramural_game() 
+    {
         return $this->belongsTo(IntramuralGame::class, 'intrams_id');
+    }
+
+    public function participating_teams() 
+    {
+        return $this->hasMany(ParticipatingTeam::class);
     }
 
 }

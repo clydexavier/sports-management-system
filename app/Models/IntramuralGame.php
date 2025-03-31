@@ -9,7 +9,7 @@ class IntramuralGame extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'year'];
+    protected $fillable = ['name', 'location', 'status', 'start_date', 'end_date'];
 
     public function venues() 
     {
@@ -35,4 +35,5 @@ class IntramuralGame extends Model
     {
         return $this->hasMany(Document::class);
     }
+
 }

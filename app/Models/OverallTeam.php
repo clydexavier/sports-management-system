@@ -38,4 +38,14 @@ class OverallTeam extends Model
         return $this->belongsTo(IntramuralGame::class, 'intrams_id');
     }
 
+    public function participating_teams()
+    {
+        return $this->hasMany(ParticipatingTeam::class);
+    }
+
+    public function players()
+    {
+        return $this->hasMany(Player::class);
+    }
+
 }

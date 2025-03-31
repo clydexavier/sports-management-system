@@ -28,7 +28,7 @@ Route::prefix('v1')->group(function () {
     // Public routes
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
-
+    
     // Authenticated user routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('logout', [AuthController::class, 'logout']);
@@ -80,6 +80,11 @@ Route::prefix('v1')->group(function () {
                     Route::post('{id}/start', [EventController::class, 'start']);
                     Route::post('{id}/finalize', [EventController::class, 'finalize']);
                     Route::post('{id}/reset', [EventController::class, 'reset']);
+
+                    Route::prefix('{event_id}') ->group(function () {
+                        //participants route
+                        
+                    });
 
                 });
 

@@ -30,7 +30,8 @@ class Player extends Model
         return $this->belongsTo(IntramuralGame::class, 'intrams_id');
     }
 
-    public function team() {
+    public function team() 
+    {
         return $this->belongsTo(OverallTeam::class, 'team_id');
     }
 
