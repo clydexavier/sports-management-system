@@ -4,6 +4,9 @@ namespace App\Http\Requests\EventRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
 class StoreEventRequest extends FormRequest
 {
     /**
@@ -41,8 +44,24 @@ class StoreEventRequest extends FormRequest
             'silver' => ['required', 'integer', 'min:0'],
             'bronze' => ['required', 'integer', 'min:0'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
+            'status' => ['required', 'in:pending,in progress,completed'],
             'tournament_type' => ['required',  'string', 'max:50'],
             'hold_third_place_match' => ['sometimes', 'boolean'],
         ];
     }
+     /**
+     * Handle a failed validation attempt.
+     *
+     * @param Validator $validator
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'message' => 'Validation errors',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+    
+    
 }

@@ -32,7 +32,7 @@ class EventController extends Controller
 
         $challongeTournaments = [];
         // Fetch Challonge tournaments
-        $params = [
+        /*$params = [
             'state' => $request->query('state', 'all'),
             'type' => $request->query('type', 'single_elimination')
         ];
@@ -40,8 +40,8 @@ class EventController extends Controller
             if ($event->challonge_event_id) {
                 $challongeTournaments[] = $this->challonge->getTournament($event->challonge_event_id, $params);
             }
-        }
-        return response()->json([ 'events'=> $events,  'challonges' =>$challongeTournaments, ], 200);
+        }*/
+        return response()->json($events, 200);
     }
 
     /**
