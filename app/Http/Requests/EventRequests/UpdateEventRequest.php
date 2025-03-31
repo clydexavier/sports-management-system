@@ -39,7 +39,9 @@ class UpdateEventRequest extends FormRequest
             'gold' => ['sometimes', 'integer', 'min:0'],
             'silver' => ['sometimes', 'integer', 'min:0'],
             'bronze' => ['sometimes', 'integer', 'min:0'],
-            'tournament_type' => ['sometimes', 'string', 'max:50'],
+            'status' => ['sometimes', 'in:pending,in progress,completed'],
+            'tournament_type' => ['sometimes',  'string', 'max:50'],
+            'hold_third_place_match' => ['sometimes', 'boolean'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
             'id' => [
                 'required',
