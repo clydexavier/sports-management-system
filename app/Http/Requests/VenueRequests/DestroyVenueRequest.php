@@ -1,14 +1,12 @@
 <?php
 
-namespace App\Http\Requests\EventRequests;
+namespace App\Http\Requests\VenueRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-use Illuminate\Contracts\Validation\Validator;
-use Illuminate\Http\Exceptions\HttpResponseException;
 
-class DestroyEventRequest extends FormRequest
+class DestroyVenueRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -17,7 +15,6 @@ class DestroyEventRequest extends FormRequest
     {
         return true;
     }
-
     protected function prepareForValidation() 
     {
         $this->merge([
@@ -38,19 +35,10 @@ class DestroyEventRequest extends FormRequest
             'intrams_id' => ['required', 'exists:intramural_games,id'],
             'id' => [
                 'required',
-                Rule::exists('events', 'id')->where(function ($query) {
+                Rule::exists('venues', 'id')->where(function ($query) {
                     return $query->where('intrams_id', $this->intrams_id);
                 }),
             ],
         ];
-    }
-
-    protected function failedValidation(Validator $validator)
-    {
-        throw new HttpResponseException(response()->json([
-            'success' => false,
-            'message' => 'Validation errors',
-            'errors' => $validator->errors()
-        ], 422));
     }
 }

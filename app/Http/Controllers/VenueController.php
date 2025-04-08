@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Requests\VenueRequests\StoreVenueRequest;
 use App\Http\Requests\VenueRequests\UpdateVenueRequest;
+use App\Http\Requests\VenueRequests\DestroyVenueRequest;
+
 use App\Models\Venue;
 
 class VenueController extends Controller
@@ -40,6 +42,14 @@ class VenueController extends Controller
             'message' => 'Venue updated successfully',
             'venue' => $venue
         ], 200);
+    }
 
+    public function destroy(DestroyVenueRequest $request) 
+    {
+        $validated = $request->validated();
+        $venue = Venue::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
+        $venue->delete();
+        
+        return response()->json(['message' => 'Event deleted successfully.'], 204);
     }
 }
