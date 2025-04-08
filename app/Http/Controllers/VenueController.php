@@ -1,0 +1,26 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Http\Requests\VenueRequests\StoreVenueRequest;
+use App\Http\Requests\VenueRequests\UpdateVenueRequest;
+use App\Models\Venue;
+
+class VenueController extends Controller
+{
+    //
+    public function index(string $intrams_id, Request $request) 
+    {
+        $venues = Venue::where('intrams_id', $intrams_id)->get();
+        
+        return response()->json($venues, 200);
+    }
+
+    public function store(StoreVenueRequest $request) 
+    {
+        $validated = $request->validated();
+        $venue = Venue::create($validated);
+        return response()->json($venue, 201);
+    }
+}

@@ -24,11 +24,11 @@ class StoreIntramuralGameRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'], // Ensure it's a string
-            'location' => ['required', 'string', 'max:255'], 
-            'status' => ['required', 'in:pending,in progress,completed'],
-            'start_date' => ['required', 'date', 'date_format:Y-m-d'], // Ensure valid date
-            'end_date' => ['required', 'date', 'date_format:Y-m-d', 'after_or_equal:start_date'], // Ensure valid date
+                'name' => ['required', 'string', 'max:255'], // Ensure it's a string
+                'location' => ['required', 'string', 'max:255'], 
+                'status' => ['required', 'in:pending,in progress,completed'],
+                'start_date' => ['required', 'date', 'date_format:Y-m-d'], // Ensure valid date
+                'end_date' => ['required', 'date', 'date_format:Y-m-d', 'after_or_equal:start_date'], // Ensure valid date
         ];
     }
 
