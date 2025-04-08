@@ -3,6 +3,8 @@
 namespace App\Http\Requests\VenueRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
 
 class UpdateVenueRequest extends FormRequest
@@ -41,5 +43,14 @@ class UpdateVenueRequest extends FormRequest
                 }),
             ],
         ];
+    }
+
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'message' => 'Validation errors',
+            'errors' => $validator->errors()
+        ], 422));
     }
 }

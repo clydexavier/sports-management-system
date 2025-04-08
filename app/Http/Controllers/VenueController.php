@@ -17,10 +17,29 @@ class VenueController extends Controller
         return response()->json($venues, 200);
     }
 
+    public function show() 
+    {
+        
+    }
+
     public function store(StoreVenueRequest $request) 
     {
         $validated = $request->validated();
         $venue = Venue::create($validated);
         return response()->json($venue, 201);
+    }
+
+    public function update(UpdateVenueRequest $request)
+    {
+        $validated = $request->validated();
+        $venue = Venue::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
+
+        $venue->update($validated);
+
+        return response()->json([
+            'message' => 'Venue updated successfully',
+            'venue' => $venue
+        ], 200);
+
     }
 }
