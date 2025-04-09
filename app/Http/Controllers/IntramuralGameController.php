@@ -11,11 +11,21 @@ class IntramuralGameController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
-        $games = IntramuralGame::all();
-        return response()->json($games, 200);
+        $perPage = 12;
+
+        $games = IntramuralGame::paginate($perPage);
+
+        return response()->json([
+            'data' => $games->items(),
+            'meta' => [
+                'current_page' => $games->currentPage(),
+                'per_page' => $games->perPage(),
+                'total' => $games->total(),
+                'last_page' => $games->lastPage(),
+            ]
+        ], 200);
     }
     /**
      * Store a newly created resource in storage.
