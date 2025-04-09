@@ -28,7 +28,32 @@ class EventController extends Controller
      */
     public function index(string $intrams_id, Request $request)
     {
-        $events = Event::where('intrams_id', $intrams_id)->get();
+        $perPage = 12;
+
+    $status = $request->query('status');
+    $search = $request->query('search');
+
+    $query = Event::where('intrams_id', $intrams_id);
+
+    if ($status && $status !== 'all') {
+        $query->where('status', $status);
+    }
+
+    if ($search) {
+        $query->where('name', 'like', '%' . $search . '%');
+    }
+
+    $events = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+    return response()->json([
+        'data' => $events->items(),
+        'meta' => [
+            'current_page' => $events->currentPage(),
+            'per_page' => $events->perPage(),
+            'total' => $events->total(),
+            'last_page' => $events->lastPage(),
+        ]
+    ], 200);
 
         $challongeTournaments = [];
         // Fetch Challonge tournaments
@@ -41,7 +66,6 @@ class EventController extends Controller
                 $challongeTournaments[] = $this->challonge->getTournament($event->challonge_event_id, $params);
             }
         }*/
-        return response()->json($events, 200);
     }
 
     /**
