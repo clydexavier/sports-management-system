@@ -95,21 +95,32 @@ class EventController extends Controller
     {
         $validated = $request->validated();
 
-        $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
-        
+        return DB::transaction(function () use ($validated) {
+            $event = Event::where('id', $validated['id'])
+                ->where('intrams_id', $validated['intrams_id'])
+                ->firstOrFail();
 
-        // Update tournament in Challonge
-        $event->update($validated);
-        $challongeParams = ['name' => $event->category. " " .$event->name, 'tournament_type' => $event -> tournament_type];
-       
-        $challongeResponse = $this->challonge->updateTournament($event->challonge_event_id, $challongeParams);
+            // Temporarily update the model in memory but don't save yet
+            $event->fill($validated);
 
-        
-        return response()->json([
-            'message' => 'Event updated successfully',
-            'event' => $event,
-            'challonge_tournament' => $challongeResponse
-        ], 200);
+            // Prepare Challonge update
+            $challongeParams = [
+                'name' => $event->category . " " . $event->name,
+                'tournament_type' => $event->tournament_type
+            ];
+
+            // Call Challonge API first
+            $challongeResponse = $this->challonge->updateTournament($event->challonge_event_id, $challongeParams);
+
+            // Only if Challonge API succeeds, proceed with saving to DB
+            $event->save();
+
+            return response()->json([
+                'message' => 'Event updated successfully',
+                'event' => $event,
+                'challonge_tournament' => $challongeResponse
+            ], 200);
+        });
     }
 
     /**
@@ -133,15 +144,27 @@ class EventController extends Controller
     public function start(StartEventRequest $request)
     {
         $validated = $request->validated();
-        $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
+
+        $event = Event::where('id', $validated['id'])
+            ->where('intrams_id', $validated['intrams_id'])
+            ->firstOrFail();
 
         $params = [
             'include_participants' => $request->query('include_participants', false)
         ];
 
         $response = $this->challonge->startTournament($event->challonge_event_id, $params);
+
+        // Check if the Challonge response indicates a successful start
+        if (isset($response['tournament'])) {
+            // Update the event status
+            $event->status = 'in progress';
+            $event->save();
+        }
+
         return response()->json($response);
     }
+
 
     /**
      * Finalize an event/tournament.
@@ -151,6 +174,12 @@ class EventController extends Controller
         $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
 
         $response = $this->challonge->finalizeTournament($event->challonge_event_id);
+        // Check if the Challonge response indicates a successful start
+        if (isset($response['tournament'])) {
+            // Update the event status
+            $event->status = 'completed';
+            $event->save();
+        }
         return response()->json($response);
     }
 
@@ -162,6 +191,13 @@ class EventController extends Controller
         $validated = $request->validated();
         $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
         $response = $this->challonge->resetTournament($event->challonge_event_id);
+
+        // Check if the Challonge response indicates a successful start
+        if (isset($response['tournament'])) {
+            // Update the event status
+            $event->status = 'pending';
+            $event->save();
+        }
         return response()->json($response);
     }
 }
