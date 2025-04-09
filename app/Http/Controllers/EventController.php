@@ -30,42 +30,42 @@ class EventController extends Controller
     {
         $perPage = 12;
 
-    $status = $request->query('status');
-    $search = $request->query('search');
+        $status = $request->query('status');
+        $search = $request->query('search');
 
-    $query = Event::where('intrams_id', $intrams_id);
+        $query = Event::where('intrams_id', $intrams_id);
 
-    if ($status && $status !== 'all') {
-        $query->where('status', $status);
-    }
+        if ($status && $status !== 'all') {
+            $query->where('status', $status);
+        }
 
-    if ($search) {
-        $query->where('name', 'like', '%' . $search . '%');
-    }
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
 
-    $events = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $events = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
-    return response()->json([
-        'data' => $events->items(),
-        'meta' => [
-            'current_page' => $events->currentPage(),
-            'per_page' => $events->perPage(),
-            'total' => $events->total(),
-            'last_page' => $events->lastPage(),
-        ]
-    ], 200);
+        return response()->json([
+            'data' => $events->items(),
+            'meta' => [
+                'current_page' => $events->currentPage(),
+                'per_page' => $events->perPage(),
+                'total' => $events->total(),
+                'last_page' => $events->lastPage(),
+            ]
+        ], 200);
 
-        $challongeTournaments = [];
-        // Fetch Challonge tournaments
-        /*$params = [
-            'state' => $request->query('state', 'all'),
-            'type' => $request->query('type', 'single_elimination')
-        ];
-        foreach ($events as $event) {
-            if ($event->challonge_event_id) {
-                $challongeTournaments[] = $this->challonge->getTournament($event->challonge_event_id, $params);
-            }
-        }*/
+            $challongeTournaments = [];
+            // Fetch Challonge tournaments
+            /*$params = [
+                'state' => $request->query('state', 'all'),
+                'type' => $request->query('type', 'single_elimination')
+            ];
+            foreach ($events as $event) {
+                if ($event->challonge_event_id) {
+                    $challongeTournaments[] = $this->challonge->getTournament($event->challonge_event_id, $params);
+                }
+            }*/
     }
 
     /**

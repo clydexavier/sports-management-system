@@ -14,8 +14,20 @@ class IntramuralGameController extends Controller
     public function index(Request $request)
     {
         $perPage = 12;
+        $status = $request->query('status');
+        $search = $request->query('search');
 
-        $games = IntramuralGame::paginate($perPage);
+        $query = IntramuralGame::query();
+
+        if ($status && $status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        $games = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         return response()->json([
             'data' => $games->items(),
@@ -27,6 +39,7 @@ class IntramuralGameController extends Controller
             ]
         ], 200);
     }
+
     /**
      * Store a newly created resource in storage.
      */

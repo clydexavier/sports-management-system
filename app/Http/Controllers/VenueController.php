@@ -14,9 +14,33 @@ class VenueController extends Controller
     //
     public function index(string $intrams_id, Request $request) 
     {
-        $venues = Venue::where('intrams_id', $intrams_id)->get();
+        $perPage = 12;
+
+        $status = $request->query('status');
+        $search = $request->query('search');
+
+        $query = Venue::where('intrams_id', $intrams_id);
+
+        if ($status && $status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        $venues = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        return response()->json([
+            'data' => $venues->items(),
+            'meta' => [
+                'current_page' => $venues->currentPage(),
+                'per_page' => $venues->perPage(),
+                'total' => $venues->total(),
+                'last_page' => $venues->lastPage(),
+            ]
+        ], 200);
         
-        return response()->json($venues, 200);
     }
 
     public function show() 
