@@ -29,10 +29,11 @@ class UpdateOverallTeamRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        return [    
             //
             'name' => ['sometimes', 'string', 'max:255'], 
-            'team_logo_path' => ['sometimes', 'string', 'max:255'],
+            'team_logo_path' => ['nullable', 'string', 'max:255'],
+            'remove_logo' => ['nullable', 'in:1'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
             'id' => [
                 'required',

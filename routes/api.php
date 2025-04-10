@@ -35,6 +35,10 @@ Route::prefix('v1')->group(function () {
         Route::get('users', [UserController::class, 'index']);
         Route::get('user', [UserController::class, 'show']);
     });
+    
+    //GAM
+    //Secretariat
+    //tournament secretary
 
     // Admin-only routes
     Route::middleware(['auth:sanctum', 'admin'])->group(function () {

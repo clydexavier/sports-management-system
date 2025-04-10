@@ -4,6 +4,9 @@ namespace App\Http\Requests\VenueRequests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
 class StoreVenueRequest extends FormRequest
 {
     /**
@@ -35,5 +38,14 @@ class StoreVenueRequest extends FormRequest
             'type' => ['required'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
         ];
+    }
+
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'message' => 'Validation errors',
+            'errors' => $validator->errors()
+        ], 422));
     }
 }

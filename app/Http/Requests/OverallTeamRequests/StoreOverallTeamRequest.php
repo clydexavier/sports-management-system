@@ -30,9 +30,8 @@ class StoreOverallTeamRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
-            'name' => ['required','string', 'max:50'],
-            'team_logo_path' => ['sometimes', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:50'],
+            'team_logo_path' => ['nullable', 'file', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
         ];
     }

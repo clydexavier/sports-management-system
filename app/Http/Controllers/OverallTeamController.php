@@ -13,18 +13,57 @@ use App\Http\Requests\OverallTeamRequests\UpdateOverallTeamMedalRequest;
 class OverallTeamController extends Controller
 {
     //
-    public function index(string $intrams_id) 
+    public function index(Request $request, string $intrams_id)
     {
-        $overall_teams = OverallTeam::where('intrams_id', $intrams_id)->get();
-        return response()->json($overall_teams, 200);
+        $perPage = 12;
+        
+        $status = $request->query('status');
+        $search = $request->query('search');
+        
+        $query = OverallTeam::where('intrams_id', $intrams_id);
+        
+        if ($status && $status !== 'all') {
+            $query->where('status', $status);
+        }
+        
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+        
+        $teams = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        
+        // Transform the data to include the full URL for team logos
+        $teamsData = $teams->items();
+        foreach ($teamsData as $team) {
+            if ($team->team_logo_path) {
+                $team->team_logo_path = asset('storage/' . $team->team_logo_path);            }
+        }
+        
+        return response()->json([
+            'data' => $teamsData,
+            'meta' => [
+                'current_page' => $teams->currentPage(),
+                'per_page' => $teams->perPage(),
+                'total' => $teams->total(),
+                'last_page' => $teams->lastPage(),
+            ]
+        ], 200);
     }
 
     public function store(StoreOverallTeamRequest $request) 
     {
-        $validated =  $request->validated();
-    
+        $validated = $request->validated();
+
+        if ($request->hasFile('team_logo_path')) {
+            // Store the file in `storage/app/public/team_logos`
+            $path = $request->file('team_logo_path')->store('team_logos', 'public');
+
+            // Update the validated data with the relative path
+            $validated['team_logo_path'] = $path;
+        }
+
         $overall_team = OverallTeam::create($validated);
-    
+
         return response()->json($overall_team, 201);
     }
 
@@ -41,12 +80,30 @@ class OverallTeamController extends Controller
 
         $overall_team = OverallTeam::where('id', $validated['id'])->firstOrFail();
 
+        // Handle logo removal if requested
+        if ($request->has('remove_logo') && $request->input('remove_logo') == '1') {
+            // Delete the old file from storage if it exists
+            if ($overall_team->team_logo_path && Storage::disk('public')->exists($overall_team->team_logo_path)) {
+                Storage::disk('public')->delete($overall_team->team_logo_path);
+            }
+            
+            // Clear the logo path in the database
+            $validated['team_logo_path'] = null;
+        }
+        // Handle new logo upload
+        else if ($request->hasFile('team_logo_path')) {
+            // Delete old file if exists
+            if ($overall_team->team_logo_path && Storage::disk('public')->exists($overall_team->team_logo_path)) {
+                Storage::disk('public')->delete($overall_team->team_logo_path);
+            }
+            
+            // Store the new file
+            $path = $request->file('team_logo_path')->store('team_logos', 'public');
+            $validated['team_logo_path'] = $path;
+        }
+        
         $overall_team->update($validated);
-
-        return response()->json([
-            'message' => 'Team info updated successfully',
-            'team' => $overall_team
-        ], 200);
+        return response()->json($overall_team, 200);
     }
 
     public function update_medal(UpdateOverallTeamMedalRequest $request) 
