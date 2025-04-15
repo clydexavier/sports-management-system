@@ -32,8 +32,9 @@ class UpdateOverallTeamRequest extends FormRequest
         return [    
             //
             'name' => ['sometimes', 'string', 'max:255'], 
-            'team_logo_path' => ['nullable', 'string', 'max:255'],
+            'team_logo_path' => ['nullable', 'image', 'mimes:jpg,png,jpeg,gif,svg',],
             'remove_logo' => ['nullable', 'in:1'],
+            'type' => ['sometimes', 'string', 'max:255'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
             'id' => [
                 'required',

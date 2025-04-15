@@ -11,7 +11,7 @@ class OverallTeam extends Model
 
     protected $fillable = [
         'name', 
-        'year',
+        'type',
         'team_logo_path', 
         'total_gold', 
         'total_silver', 
