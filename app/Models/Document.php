@@ -14,6 +14,7 @@ class Document extends Model
         'name',
         'file_path',
         'mime_type',
+        'description',
         'size',
         'intrams_id',
     ];

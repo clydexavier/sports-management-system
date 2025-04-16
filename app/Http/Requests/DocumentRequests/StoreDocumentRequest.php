@@ -22,7 +22,8 @@ class StoreDocumentRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'file' => ['required','file', 'mimes:pdf,doc,docx,jpg,png', 'max:10240'], // Max file size: 10MB
+            'description' => ['required', 'string', 'max:1024'],
+            'file' => ['required','file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'], // Max file size: 10MB
             'intrams_id' => ['required', 'exists:intramural_games,id'],
         ];
     }

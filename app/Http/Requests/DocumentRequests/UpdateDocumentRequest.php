@@ -24,7 +24,8 @@ class UpdateDocumentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['sometimes', 'string', 'max:255'],
+            'description' => ['sometimes', 'string', 'max:1024'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
             'id' => [
                 'required',
