@@ -10,8 +10,10 @@ class ParticipatingTeam extends Model
     use HasFactory;
 
     public $fillable = [
+        'name',
         'team_id',
         'event_id',
+        'finalized',
         'GAM_id',
     ];
 
@@ -19,11 +21,11 @@ class ParticipatingTeam extends Model
 
     public function event() 
     {
-        return $this->belongsTo(Event::class);
+        return $this->belongsTo(Event::class, 'event_id');
     }
 
     public function overall_team() 
     {
-        return $this->belongsTo(OverallTeam::class);
+        return $this->belongsTo(OverallTeam::class, 'team_id');
     }
 }

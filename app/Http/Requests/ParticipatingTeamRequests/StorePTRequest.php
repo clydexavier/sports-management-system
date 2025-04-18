@@ -11,7 +11,14 @@ class StorePTRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
+    }
+
+    protected function prepareForValidation() {
+        $this->merge([
+            'intrams_id' => $this->route('intrams_id'),
+            'event_id' => $this->route('event_id'),
+        ]);
     }
 
     /**
@@ -22,7 +29,9 @@ class StorePTRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'name' => ['required', 'string', 'max:50'],
+            'team_id' => ['required', 'exists:overall_teams,id'],
+            'event_id' => ['required', 'exists:events,id'],
         ];
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\VarsityPlayerController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\BracketController;
+use App\Http\Controllers\ParticipatingTeamController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -87,6 +88,15 @@ Route::prefix('v1')->group(function () {
 
                     Route::prefix('{event_id}') ->group(function () {
                         //participants route
+                        Route::get('team_names', [OverallTeamController::class, 'index_team_name']);
+                        Route::get('participants', [ParticipatingTeamController::class, 'index']);
+                        Route::post('participants/create', [ParticipatingTeamController::class, 'store']);
+                        Route::patch('participants/{id}/edit', [ParticipatingTeamController::class, 'update']);
+                        Route::delete('participants/{id}', [ParticipatingTeamController::class, 'destroy']);
+                        Route::get('participants/{id}', [ParticipatingTeamController::class, 'show']);
+
+
+
                         
                     });
 

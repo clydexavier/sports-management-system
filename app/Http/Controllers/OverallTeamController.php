@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\OverallTeam;
+use App\Models\ParticipatingTeam;
 use App\Models\IntramuralGame;
 use App\Http\Requests\OverallTeamRequests\StoreOverallTeamRequest;
 use App\Http\Requests\OverallTeamRequests\UpdateOverallTeamRequest;
@@ -54,6 +55,14 @@ class OverallTeamController extends Controller
         ], 200);
     }
 
+    public function index_team_name(Request $request, string $intrams_id) 
+    {
+        $teams = OverallTeam::where('intrams_id', $intrams_id)
+                    ->orderBy('created_at', 'desc')
+                    ->get(['id', 'name']);
+        return response()->json($teams, 200);
+    }
+
     public function store(StoreOverallTeamRequest $request) 
     {
         $validated = $request->validated();
@@ -67,7 +76,6 @@ class OverallTeamController extends Controller
         }
 
         $overall_team = OverallTeam::create($validated);
-
         return response()->json($overall_team, 201);
     }
 
