@@ -14,8 +14,12 @@ class Player extends Model
         'id_number',
         'is_varsity',
         'sport',
-        'team_id',
+        'participant_id',
         'intrams_id',
+        'medical_certificate',
+        'parents_consent',
+        'cor',
+        'approved',
     ];
 
 
@@ -30,12 +34,15 @@ class Player extends Model
         return $this->belongsTo(IntramuralGame::class, 'intrams_id');
     }
 
-    public function team() 
-    {
-        return $this->belongsTo(OverallTeam::class, 'team_id');
+    public function participating_team() {
+        return $this->belongsTo(ParticipatingTeam::class, 'participant_id');
     }
+
+
 
     public function isVarsity() {
         return $this->is_varsity;
     }
+
+    
 }

@@ -28,4 +28,9 @@ class ParticipatingTeam extends Model
     {
         return $this->belongsTo(OverallTeam::class, 'team_id');
     }
+
+    public function players() 
+    {
+        return $this->hasMany(Player::class);
+    }
 }

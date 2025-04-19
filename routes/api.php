@@ -10,6 +10,7 @@ use App\Http\Controllers\VarsityPlayerController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\BracketController;
 use App\Http\Controllers\ParticipatingTeamController;
+use App\Http\Controllers\PlayerController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -95,7 +96,13 @@ Route::prefix('v1')->group(function () {
                         Route::delete('participants/{id}', [ParticipatingTeamController::class, 'destroy']);
                         Route::get('participants/{id}', [ParticipatingTeamController::class, 'show']);
 
-
+                        //Players Route
+                        Route::prefix('participants/{participant_id}')->group(function () {
+                            Route::get('players', [PlayerController::class, 'index']);
+                            Route::post('players/create', [PlayerController::class, 'store']);
+                            Route::patch('players/{id}/edit', [PlayerController::class, 'update']);
+                            Route::delete('players/{id}', [PlayerController::class, 'destroy']);
+                        });
 
                         
                     });
