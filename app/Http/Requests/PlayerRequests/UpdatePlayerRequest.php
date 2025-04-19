@@ -62,7 +62,7 @@ class UpdatePlayerRequest extends FormRequest
                 return $query->where('participant_id', $this->participant_id);
             }),
         ],
-
+        'approved' => ['sometimes', 'boolean'],
         'medical_certificate' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
         'parents_consent' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
         'cor' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
