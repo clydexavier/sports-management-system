@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\ChallongeService;
+use Illuminate\Support\Facades\DB;
 use App\Http\Requests\EventRequests\StoreEventRequest;
 use App\Http\Requests\EventRequests\ShowEventRequest;
 use App\Http\Requests\EventRequests\UpdateEventRequest;
