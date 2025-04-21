@@ -68,7 +68,7 @@ class IntramuralGameController extends Controller
     {
         //
         $validated = $request->validated();
-        $game = IntramuralGame::findOrFail($validated['id'])->firstOrFail();
+        $game = IntramuralGame::findOrFail($validated['id']);
         $game->update($validated);
 
         return response()->json(['message' =>'Game updated successfully', 'game' => $game], 200);
