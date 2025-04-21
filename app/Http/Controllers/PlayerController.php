@@ -32,11 +32,35 @@ class PlayerController extends Controller
         if ($search) {
             $query->where('name', 'like', '%' . $search . '%');
         }
+        /*
+        $teams = $query->orderBy('created_at', 'desc')->paginate($perPage);
         
+        // Transform the data to include the full URL for team logos
+        $teamsData = $teams->items();
+        foreach ($teamsData as $team) {
+            if ($team->team_logo_path) {
+                $team->team_logo_path = asset('storage/' . $team->team_logo_path);            
+            }
+        }
+        */
+
+
         $players = $query->orderBy('created_at', 'desc')->paginate($perPage);
-        
+        $playersData = $players->items();
+        foreach ($playersData as $player) {
+            if ($player->medical_certificate) {
+                $player->medical_certificate = asset('storage/' . $player->medical_certificate);            
+            }
+            if ($player->cor) {
+                $player->cor = asset('storage/' . $player->cor);            
+            }
+            if ($player->parents_consent) {
+                $player->parents_consent = asset('storage/' . $player->parents_consent);            
+            }
+        }
+
         return response()->json([
-            'data' => $players->items(),
+            'data' => $playersData,
             'meta' => [
                 'current_page' => $players->currentPage(),
                 'per_page' => $players->perPage(),
