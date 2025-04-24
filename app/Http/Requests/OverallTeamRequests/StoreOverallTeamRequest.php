@@ -31,7 +31,7 @@ class StoreOverallTeamRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:50'],
-            'type' => ['required', 'string', 'max:50'],
+            'type' => ['sometimes', 'string', 'max:50'],
             'team_logo_path' => ['nullable', 'file', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
         ];
