@@ -97,11 +97,11 @@ Route::prefix('v1')->group(function () {
                         Route::get('participants/{id}', [ParticipatingTeamController::class, 'show']);
 
                         //Players Route
-                        Route::prefix('participants/{participant_id}')->group(function () {
-                            Route::get('players', [PlayerController::class, 'index']);
-                            Route::post('players/create', [PlayerController::class, 'store']);
-                            Route::patch('players/{id}/edit', [PlayerController::class, 'update']);
-                            Route::delete('players/{id}', [PlayerController::class, 'destroy']);
+                        Route::prefix('players')->group(function () {
+                            Route::get('/', [PlayerController::class, 'index']);
+                            Route::post('create', [PlayerController::class, 'store']);
+                            Route::patch('{id}/edit', [PlayerController::class, 'update']);
+                            Route::delete('{id}', [PlayerController::class, 'destroy']);
                         });
 
                         

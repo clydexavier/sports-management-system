@@ -21,7 +21,6 @@ class UpdatePlayerRequest extends FormRequest
         $this->merge([
             'intrams_id' => $this->route('intrams_id'),
             'event_id' => $this->route('event_id'), // Ensure team_id is always null
-            'participant_id' => $this->route('participant_id'),
             'id' => $this->route('id'),
         ]);
     }
@@ -36,12 +35,19 @@ class UpdatePlayerRequest extends FormRequest
     return [
         'name' => ['sometimes', 'string', 'max:255'],
 
+        'team_id' => [
+            'required',
+            'exists:overall_teams,id',
+        ],
+
         'id_number' => [
             'sometimes',
             'string',
             Rule::unique('players', 'id_number')
                 ->where(function ($query) {
-                    return $query->where('participant_id', $this->participant_id);
+                    return $query->where('team_id', $this->team_id)
+                        ->where('event_id', $this->event_id)
+                        ->where('intrams_id', $this->intrams_id);   
                 })
                 ->ignore($this->id), // <-- ignore current player ID during update
         ],
@@ -49,17 +55,14 @@ class UpdatePlayerRequest extends FormRequest
         'intrams_id' => ['required', 'exists:intramural_games,id'],
         'event_id' => ['required', 'exists:events,id'],
 
-        'participant_id' => [
-            'required',
-            Rule::exists('participating_teams', 'id')->where(function ($query) {
-                return $query->where('event_id', $this->event_id);
-            }),
-        ],
+        
 
         'id' => [
             'required',
             Rule::exists('players', 'id')->where(function ($query) {
-                return $query->where('participant_id', $this->participant_id);
+                return $query->where('team_id', $this->team_id)
+                    ->where('event_id', $this->event_id)
+                    ->where('intrams_id', $this->intrams_id);
             }),
         ],
         'approved' => ['sometimes', 'boolean'],

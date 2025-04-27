@@ -15,7 +15,7 @@ use App\Http\Requests\PlayerRequests\DestroyPlayerRequest;
 class PlayerController extends Controller
 {
     //
-    public function index(Request $request, string $intrams_id, string $event_id, string $participant_id)
+    public function index(Request $request, string $intrams_id, string $event_id)
     {
         \Log::info('Incoming data: ', $request->all());
         $perPage = 12;
@@ -23,7 +23,7 @@ class PlayerController extends Controller
         $approved = $request->query('approved');
         $search = $request->query('search');
         
-        $query = Player::where('participant_id', $participant_id);
+        $query = Player::where('event_id', $event_id);
         
         if ($approved && $approved !== 'All') {
             $query->where('approved', $approved);
