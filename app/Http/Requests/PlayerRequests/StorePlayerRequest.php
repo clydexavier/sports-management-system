@@ -19,11 +19,7 @@ class StorePlayerRequest extends FormRequest
     {
         $this->merge([
             'intrams_id' => $this->route('intrams_id'),
-<<<<<<< HEAD
-            'event_id' => $this->route('event_id'), // Ensure team_id is always null
-=======
             'event_id' => $this->route('event_id'), 
->>>>>>> dd8e76a ([UPDATE] PlayerController now modified routing)
         ]);
     }
 
@@ -41,13 +37,9 @@ class StorePlayerRequest extends FormRequest
             'event_id' => ['required', 'exists:events,id'],
             'team_id' => [
                 'required',
-<<<<<<< HEAD
-                'exists:overall_teams,id',
-=======
                 Rule::exists('overall_teams', 'id')->where(function ($query) {
                     return $query->where('intrams_id', $this->intrams_id);
                 }),
->>>>>>> dd8e76a ([UPDATE] PlayerController now modified routing)
             ],
             'medical_certificate' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
             'parents_consent' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],

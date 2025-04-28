@@ -38,10 +38,7 @@ class OverallTeam extends Model
         return $this->belongsTo(IntramuralGame::class, 'intrams_id');
     }
 
-<<<<<<< HEAD
-=======
 
->>>>>>> dd8e76a ([UPDATE] PlayerController now modified routing)
     public function players()
     {
         return $this->hasMany(Player::class);

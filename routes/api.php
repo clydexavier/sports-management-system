@@ -102,18 +102,8 @@ Route::prefix('v1')->group(function () {
                         Route::delete('participants/{id}', [ParticipatingTeamController::class, 'destroy']);
                         Route::get('participants/{id}', [ParticipatingTeamController::class, 'show']);
 
-<<<<<<< HEAD
-                        //Players Route
-                        Route::prefix('players')->group(function () {
-                            Route::get('/', [PlayerController::class, 'index']);
-                            Route::post('create', [PlayerController::class, 'store']);
-                            Route::patch('{id}/edit', [PlayerController::class, 'update']);
-                            Route::delete('{id}', [PlayerController::class, 'destroy']);
-                        });
-=======
                         
                     
->>>>>>> dd8e76a ([UPDATE] PlayerController now modified routing)
 
                         
                     });

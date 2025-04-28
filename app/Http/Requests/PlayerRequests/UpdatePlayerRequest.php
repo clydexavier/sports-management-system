@@ -35,23 +35,12 @@ class UpdatePlayerRequest extends FormRequest
     return [
         'name' => ['sometimes', 'string', 'max:255'],
 
-        'team_id' => [
-            'required',
-            'exists:overall_teams,id',
-        ],
-
         'id_number' => [
             'sometimes',
             'string',
             Rule::unique('players', 'id_number')
                 ->where(function ($query) {
-<<<<<<< HEAD
-                    return $query->where('team_id', $this->team_id)
-                        ->where('event_id', $this->event_id)
-                        ->where('intrams_id', $this->intrams_id);   
-=======
                     return $query->where('id', $this->id);
->>>>>>> dd8e76a ([UPDATE] PlayerController now modified routing)
                 })
                 ->ignore($this->id), // <-- ignore current player ID during update
         ],
@@ -59,21 +48,10 @@ class UpdatePlayerRequest extends FormRequest
         'intrams_id' => ['required', 'exists:intramural_games,id'],
         'event_id' => ['required', 'exists:events,id'],
 
-<<<<<<< HEAD
-        
-
-        'id' => [
-            'required',
-            Rule::exists('players', 'id')->where(function ($query) {
-                return $query->where('team_id', $this->team_id)
-                    ->where('event_id', $this->event_id)
-                    ->where('intrams_id', $this->intrams_id);
-=======
         'id' => [
             'required',
             Rule::exists('players', 'id')->where(function ($query) {
                 return $query->where('event_id', $this->event_id);
->>>>>>> dd8e76a ([UPDATE] PlayerController now modified routing)
             }),
         ],
         'approved' => ['sometimes', 'boolean'],

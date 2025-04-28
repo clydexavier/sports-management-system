@@ -27,7 +27,11 @@ class PlayerController extends Controller
         $search = $request->query('search');
         $team_id = $request->query('activeTab');
         
-        $query = Player::where('participant_id', $participant_id);
+        $query = Player::where('event_id', $event_id)->where('intrams_id', $intrams_id);
+
+        if($team_id && $team_id !== 'All') {
+            $query->where('team_id', $team_id);
+        }
         
         if ($approved && $approved !== 'All') {
             $query->where('approved', $approved);
