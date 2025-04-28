@@ -88,6 +88,12 @@ Route::prefix('v1')->group(function () {
                     Route::post('{id}/reset', [EventController::class, 'reset']);
 
                     Route::prefix('{event_id}') ->group(function () {
+                        //Players Route                       
+                        Route::get('players', [PlayerController::class, 'index']);
+                        Route::post('players/create', [PlayerController::class, 'store']);
+                        Route::patch('players/{id}/edit', [PlayerController::class, 'update']);
+                        Route::delete('players/{id}', [PlayerController::class, 'destroy']);
+                        
                         //participants route
                         Route::get('team_names', [OverallTeamController::class, 'index_team_name']);
                         Route::get('participants', [ParticipatingTeamController::class, 'index']);
@@ -96,6 +102,7 @@ Route::prefix('v1')->group(function () {
                         Route::delete('participants/{id}', [ParticipatingTeamController::class, 'destroy']);
                         Route::get('participants/{id}', [ParticipatingTeamController::class, 'show']);
 
+<<<<<<< HEAD
                         //Players Route
                         Route::prefix('players')->group(function () {
                             Route::get('/', [PlayerController::class, 'index']);
@@ -103,6 +110,10 @@ Route::prefix('v1')->group(function () {
                             Route::patch('{id}/edit', [PlayerController::class, 'update']);
                             Route::delete('{id}', [PlayerController::class, 'destroy']);
                         });
+=======
+                        
+                    
+>>>>>>> dd8e76a ([UPDATE] PlayerController now modified routing)
 
                         
                     });

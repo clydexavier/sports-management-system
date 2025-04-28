@@ -30,7 +30,7 @@ class OverallTeam extends Model
         'total_silver' => 'integer',
         'total_bronze' => 'integer',
         'name' => 'string',
-        'teama_logo_path' => 'string',
+        'team_logo_path' => 'string',
     ];
 
     public function intramural_game()
@@ -38,6 +38,10 @@ class OverallTeam extends Model
         return $this->belongsTo(IntramuralGame::class, 'intrams_id');
     }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> dd8e76a ([UPDATE] PlayerController now modified routing)
     public function players()
     {
         return $this->hasMany(Player::class);

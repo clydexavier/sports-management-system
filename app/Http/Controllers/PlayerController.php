@@ -1,11 +1,14 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Models\IntramuralGame;
 use App\Models\Player;
+use App\Models\Event;
+
 use Illuminate\Support\Facades\Storage;
 
 use Illuminate\Http\Request;
-use App\Models\IntramuralGame;
 use App\Http\Requests\PlayerRequests\StorePlayerRequest;
 use App\Http\Requests\PlayerRequests\UpdatePlayerRequest;
 use App\Http\Requests\PlayerRequests\ShowPlayerRequest;
@@ -22,8 +25,9 @@ class PlayerController extends Controller
         
         $approved = $request->query('approved');
         $search = $request->query('search');
+        $team_id = $request->query('activeTab');
         
-        $query = Player::where('event_id', $event_id);
+        $query = Player::where('participant_id', $participant_id);
         
         if ($approved && $approved !== 'All') {
             $query->where('approved', $approved);
@@ -96,7 +100,16 @@ class PlayerController extends Controller
         $validated['is_varsity'] = false;
         $validated['approved'] = false;
 
-        $participatingTeam = \App\Models\ParticipatingTeam::with('event')->find($validated['participant_id']);
+        $event = Event::find($validated['event_id']);
+        if($event) {
+            $eventType = $event->category;
+            $eventName = $event->name;
+            $validated['sport'] = $eventType . ' ' . $eventName;
+
+        } else {
+            $validated['sport'] = null;
+        } 
+        /*$participatingTeam = \App\Models\ParticipatingTeam::with('event')->find($validated['participant_id']);
 
         if ($participatingTeam && $participatingTeam->event) {
             $eventType = $participatingTeam->event->category; // e.g., "Men" or "Women"
@@ -105,7 +118,7 @@ class PlayerController extends Controller
         } else {
             $validated['sport'] = null; // or handle fallback
         }
-
+        */
         $player = Player::create($validated);
 
         return response()->json($player, 201);
@@ -120,7 +133,7 @@ class PlayerController extends Controller
         \Log::info('Validated data:', $validated);
 
         $player = Player::where('id', $validated['id'])
-                        ->where('participant_id', $validated['participant_id'])
+                        ->where('event_id', $validated['event_id'])
                         ->firstOrFail();
 
         // Handle file removals
@@ -191,7 +204,6 @@ class PlayerController extends Controller
 
         $validated = $request->validated();
         $player = Player::where('id', $validated['id'])
-                        ->where('participant_id', $validated['participant_id'])
                         ->firstOrFail();
 
         if ($player->medical_certificate && Storage::disk('public')->exists($player->medical_certificate)) {

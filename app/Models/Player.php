@@ -14,8 +14,13 @@ class Player extends Model
         'id_number',
         'is_varsity',
         'sport',
+<<<<<<< HEAD
         'team_id',
+=======
+>>>>>>> dd8e76a ([UPDATE] PlayerController now modified routing)
         'intrams_id',
+        'team_id',
+        'event_id',
         'medical_certificate',
         'parents_consent',
         'cor',
@@ -35,12 +40,18 @@ class Player extends Model
     }
 
     public function overall_team() {
+<<<<<<< HEAD
         return $this->belongsTo(OverallTeam::class, 'participant_id');
     }
 
     public function event() {
         return $this->belongsTo(Event::class, 'event_id');
     }
+=======
+        return $this->belongsTo(OverallTeam::class, 'team_id');
+    }
+
+>>>>>>> dd8e76a ([UPDATE] PlayerController now modified routing)
 
     public function isVarsity() {
         return $this->is_varsity;
