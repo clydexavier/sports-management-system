@@ -17,6 +17,7 @@ class Player extends Model
         'intrams_id',
         'team_id',
         'event_id',
+        'picture',
         'medical_certificate',
         'parents_consent',
         'cor',

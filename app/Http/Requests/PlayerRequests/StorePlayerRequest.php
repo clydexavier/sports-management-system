@@ -41,6 +41,7 @@ class StorePlayerRequest extends FormRequest
                     return $query->where('intrams_id', $this->intrams_id);
                 }),
             ],
+            'picture' => ['nullable', 'file', 'mimes:,jpg,jpeg,png', 'max:2048'],
             'medical_certificate' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
             'parents_consent' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
             'cor' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],

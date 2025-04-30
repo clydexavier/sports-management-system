@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        //
         Schema::table('players', function (Blueprint $table) {
-            $table->boolean('medical_certificate')->nullable()->change();
-            $table->boolean('parents_consent')->nullable()->change();
-            $table->boolean('cor')->nullable()->change();
+            //
+            $table->string('picture')->nullable()->after('id');
+
         });
     }
 
@@ -24,11 +23,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
         Schema::table('players', function (Blueprint $table) {
-            $table->string('medical_certificate')->nullable()->change();
-            $table->string('parents_consent')->nullable()->change();
-            $table->string('cor')->nullable()->change();
+            //
+            $table->dropColumn('picture');
         });
     }
 };
