@@ -80,7 +80,8 @@ class EventController extends Controller
         $challongeParams = [
             'name' => $validated['category']. " " .$validated['name'],
             'tournament_type' => $validated['tournament_type'],
-            'hold_third_place_match' => $validated['hold_third_place_match'] ?? false
+            'hold_third_place_match' => $validated['hold_third_place_match'] ?? true,
+            'show_rounds' => true
         ];
         $challongeResponse = $this->challonge->createTournament($challongeParams);
 
@@ -112,6 +113,26 @@ class EventController extends Controller
         $challongeTournament = $this->challonge->getTournament($event->challonge_event_id, $params);
         return response()->json($challongeTournament['tournament']['name'], 200);
     }
+
+    public function bracket(Request $request, string $intrams_id, string $event_id)
+    {
+        $event = Event::where('id', $event_id)
+            ->where('intrams_id', $intrams_id)
+            ->firstOrFail();
+
+        // Get full tournament details from Challonge
+        $challongeTournament = $this->challonge->getTournament($event->challonge_event_id);
+
+        // Extract the bracket URL (e.g., 'ku8g556h')
+        $tournamentUrl = $challongeTournament['tournament']['url'] ?? null;
+
+        if (!$tournamentUrl) {
+            return response()->json(['message' => 'Tournament URL not found'], 404);
+        }
+
+        return response()->json(['bracket_id' => $tournamentUrl, 'status' => $event->status], 200);
+    }
+
 
     /**
      * Update event and sync changes with Challonge.
@@ -169,28 +190,39 @@ class EventController extends Controller
     public function start(StartEventRequest $request)
     {
         $validated = $request->validated();
-
+       
         $event = Event::where('id', $validated['id'])
             ->where('intrams_id', $validated['intrams_id'])
             ->firstOrFail();
+       
+        $participantsInput = $request->input('participants', []);
+       
+        if (empty($participantsInput)) {
+            return response()->json(['message' => 'Participants data is required.'], 422);
+        }
 
-        $params = [
-            'include_participants' => $request->query('include_participants', false)
+        // Wrap in expected Challonge format
+        $payload = [
+            'api_key' => env('CHALLONGE_API_KEY'),
+            'participants' => $participantsInput,
         ];
+        // Send to Challonge
+        $addResponse = $this->challonge->addTournamentParticipants($event->challonge_event_id, $payload);
+        
+        // Check if participants were added successfully
+        if (empty($addResponse) || !isset($addResponse[0]['participant'])) {
+            return response()->json(['message' => 'Failed to add participants to tournament.'], 500);
+        }
 
-        $response = $this->challonge->startTournament($event->challonge_event_id, $params);
-
-        // Check if the Challonge response indicates a successful start
-        if (isset($response['tournament'])) {
-            // Update the event status
+        // Start the tournament
+        $startResponse = $this->challonge->startTournament($event->challonge_event_id);
+        
+        if (isset($startResponse['tournament'])) {
             $event->status = 'in progress';
             $event->save();
         }
-
-        return response()->json($response);
+        return response()->json($startResponse);
     }
-
-
     /**
      * Finalize an event/tournament.
      */

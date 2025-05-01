@@ -11,6 +11,9 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\BracketController;
 use App\Http\Controllers\ParticipatingTeamController;
 use App\Http\Controllers\PlayerController;
+use App\Http\Controllers\TeamGalleryController;
+use App\Http\Controllers\GameController;
+
 
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +26,8 @@ use Illuminate\Support\Facades\Route;
 | assigned to the "api" middleware group. 
 |
 */
+
+Route::post('{intrams_id}/{event_id}/{team_id}/gallery/generate/', [TeamGalleryController::class,'generateGalleryDocx']);
 
 // Version 1 API routes
 Route::prefix('v1')->group(function () {
@@ -102,10 +107,8 @@ Route::prefix('v1')->group(function () {
                         Route::delete('participants/{id}', [ParticipatingTeamController::class, 'destroy']);
                         Route::get('participants/{id}', [ParticipatingTeamController::class, 'show']);
 
-                        
-                    
-
-                        
+                        Route::get('bracket', [EventController::class, 'bracket']);
+                        Route::get('matches', [GameController::class, 'index']);                        
                     });
 
                 });
