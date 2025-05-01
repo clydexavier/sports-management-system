@@ -13,6 +13,7 @@ use App\Http\Controllers\ParticipatingTeamController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\TeamGalleryController;
 use App\Http\Controllers\GameController;
+use App\Http\Controllers\ScheduleController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -82,33 +83,41 @@ Route::prefix('v1')->group(function () {
                 // Events //fucntions as tournaments in challonge
                 Route::prefix('events')->group(function () {
                     //local db
+                    //basic event CRUD
                     Route::get('/', [EventController::class, 'index']);
                     Route::post('create', [EventController::class, 'store']);
                     Route::get('{id}', [EventController::class, 'show']);
                     Route::patch('{id}/edit', [EventController::class, 'update']);
                     Route::delete('{id}', [EventController::class, 'destroy']);
                     
+
+                    //start and submit results of event
                     Route::post('{id}/start', [EventController::class, 'start']);
                     Route::post('{id}/finalize', [EventController::class, 'finalize']);
                     Route::post('{id}/reset', [EventController::class, 'reset']);
 
                     Route::prefix('{event_id}') ->group(function () {
+                       
                         //Players Route                       
                         Route::get('players', [PlayerController::class, 'index']);
                         Route::post('players/create', [PlayerController::class, 'store']);
                         Route::patch('players/{id}/edit', [PlayerController::class, 'update']);
                         Route::delete('players/{id}', [PlayerController::class, 'destroy']);
                         
-                        //participants route
-                        Route::get('team_names', [OverallTeamController::class, 'index_team_name']);
-                        Route::get('participants', [ParticipatingTeamController::class, 'index']);
-                        Route::post('participants/create', [ParticipatingTeamController::class, 'store']);
-                        Route::patch('participants/{id}/edit', [ParticipatingTeamController::class, 'update']);
-                        Route::delete('participants/{id}', [ParticipatingTeamController::class, 'destroy']);
-                        Route::get('participants/{id}', [ParticipatingTeamController::class, 'show']);
-
+                        //bracket, matches, and schedule of events
                         Route::get('bracket', [EventController::class, 'bracket']);
-                        Route::get('matches', [GameController::class, 'index']);                        
+                        Route::get('matches', [GameController::class, 'index']);
+
+                        Route::post('schedule/create', [ScheduleController::class, 'store']);
+                        //participants route
+                       // Route::get('team_names', [OverallTeamController::class, 'index_team_name']);
+                        //Route::get('participants', [ParticipatingTeamController::class, 'index']);
+                       // Route::post('participants/create', [ParticipatingTeamController::class, 'store']);
+                        //Route::patch('participants/{id}/edit', [ParticipatingTeamController::class, 'update']);
+                       // Route::delete('participants/{id}', [ParticipatingTeamController::class, 'destroy']);
+                       // Route::get('participants/{id}', [ParticipatingTeamController::class, 'show']);
+
+                                                
                     });
 
                 });
