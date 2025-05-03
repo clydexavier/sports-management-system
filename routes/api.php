@@ -117,7 +117,7 @@ Route::prefix('v1')->group(function () {
 
 
                         //participants route
-                       // Route::get('team_names', [OverallTeamController::class, 'index_team_name']);
+                        Route::get('team_names', [OverallTeamController::class, 'index_team_name']);
                         //Route::get('participants', [ParticipatingTeamController::class, 'index']);
                        // Route::post('participants/create', [ParticipatingTeamController::class, 'store']);
                         //Route::patch('participants/{id}/edit', [ParticipatingTeamController::class, 'update']);

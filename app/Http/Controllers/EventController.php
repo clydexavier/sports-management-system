@@ -14,6 +14,8 @@ use App\Http\Requests\EventRequests\FinalizeEventRequest;
 use App\Http\Requests\EventRequests\ResetEventRequest;
 
 use App\Models\Event;
+use App\Models\Schedule;
+
 
 class EventController extends Controller
 {
@@ -217,10 +219,59 @@ class EventController extends Controller
         // Start the tournament
         $startResponse = $this->challonge->startTournament($event->challonge_event_id);
         
-        if (isset($startResponse['tournament'])) {
-            $event->status = 'in progress';
-            $event->save();
+        if (!isset($startResponse['tournament'])) {
+            return response()->json(['message' => 'Failed to start tournament.'], 500);
         }
+    
+        $event->status = 'in progress';
+        $event->save();
+
+        // Fetch matches
+        $allMatches = $this->challonge->getMatches($event->challonge_event_id);
+        $matches = collect($allMatches)->map(fn($item) => $item['match'] ?? $item);
+        $playOrderMap = $matches->pluck('suggested_play_order', 'id')->all();
+
+        // Fetch participants
+        $participants = $this->challonge->getTournamentParticipants($event->challonge_event_id);
+        $participantMap = collect($participants)->mapWithKeys(function ($item) {
+            $participant = $item['participant'] ?? $item;
+            return [$participant['id'] => $participant['name']];
+        });
+
+        // Resolve player names
+        $resolvePlayerName = function ($match, $key, $prereqKey, $isLoserKey) use ($participantMap, $playOrderMap) {
+            $id = $match[$key];
+            if (isset($participantMap[$id])) {
+                return $participantMap[$id];
+            }
+
+            $prereqId = $match[$prereqKey] ?? null;
+            if ($prereqId && isset($playOrderMap[$prereqId])) {
+                $prefix = $match[$isLoserKey] ? 'L' : 'W';
+                return "{$prefix}{$playOrderMap[$prereqId]}";
+            }
+
+            return 'TBD';
+        };
+
+        // Create schedule entries for each match
+        foreach ($matches as $match) {
+            $scheduleData = [
+                'match_id' => (string) $match['id'],
+                'challonge_event_id' => $event->challonge_event_id,
+                'event_id' => $event->id,
+                'intrams_id' => $event->intrams_id,
+                'team_1' => (string) ($match['player1_id'] ?? '0'),
+                'team_2' => (string) ($match['player2_id'] ?? '0'),
+                'team1_name' => $resolvePlayerName($match, 'player1_id', 'player1_prereq_match_id', 'player1_is_prereq_match_loser'),
+                'team2_name' => $resolvePlayerName($match, 'player2_id', 'player2_prereq_match_id', 'player2_is_prereq_match_loser'),
+                'date' => null,
+                'time' => null,
+            ];
+            // Store schedule directly via model (bypassing request validation)
+            Schedule::create($scheduleData);
+        }
+
         return response()->json($startResponse);
     }
     /**
