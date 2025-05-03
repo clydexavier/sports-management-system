@@ -14,6 +14,8 @@ use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\TeamGalleryController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\PodiumController;
+
 
 
 use Illuminate\Support\Facades\Route;
@@ -79,6 +81,9 @@ Route::prefix('v1')->group(function () {
                     Route::patch('{id}/update_medal', [OverallTeamController::class, 'update_medal']);
                     Route::delete('{id}', [OverallTeamController::class, 'destroy']);
                 });
+                
+                //Podium routes
+                Route::get('podiums', [PodiumController::class, 'index']);
 
                 // Events //fucntions as tournaments in challonge
                 Route::prefix('events')->group(function () {
@@ -124,7 +129,12 @@ Route::prefix('v1')->group(function () {
                        // Route::delete('participants/{id}', [ParticipatingTeamController::class, 'destroy']);
                        // Route::get('participants/{id}', [ParticipatingTeamController::class, 'show']);
 
-                                                
+                       //Podium routes
+                       Route::post('podium/create', [PodiumController::class, 'store']);
+                       
+                       Route::get('podium', [PodiumController::class, 'show']);
+                       Route::patch('podium/edit', [PodiumController::class, 'update']);
+                       Route::delete('podium', [PodiumController::class, 'destroy']);
                     });
 
                 });
