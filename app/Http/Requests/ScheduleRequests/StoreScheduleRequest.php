@@ -41,6 +41,8 @@ class StoreScheduleRequest extends FormRequest
             'event_id' => ['required', 'exists:events,id'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
             'challonge_event_id' => ['required', 'string', 'max:50'],
+            'team1_name' => ['required', 'string', 'max:50'],
+            'team2_name' => ['required', 'string', 'max:50'],
             'team_1' => ['required', 'string', 'max:50'],
             'team_2' => ['required', 'string', 'max:50'],
             'date' => ['required', 'date'],
