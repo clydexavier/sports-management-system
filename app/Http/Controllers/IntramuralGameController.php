@@ -5,6 +5,9 @@ use Illuminate\Http\Request;
 use App\Http\Requests\IntramuralRequests\StoreIntramuralGameRequest;
 use App\Http\Requests\IntramuralRequests\UpdateIntramuralGameRequest;
 use App\Models\IntramuralGame;
+use App\Models\Podium;
+use App\Models\Event;
+
 
 class IntramuralGameController extends Controller
 {
@@ -90,4 +93,59 @@ class IntramuralGameController extends Controller
         }
         
     }
+
+    public function tally(Request $request, string $id)
+    {
+        // Get all podiums for this intramural, along with team relationships
+        $podiums = Podium::with(['gold', 'silver', 'bronze'])
+            ->where('intrams_id', $id)
+            ->get();
+
+        $tally = [];
+
+        foreach ($podiums as $podium) {
+            $event = $podium->event;
+            if (!$event) continue;
+
+            // Event-specific medal count (can be 0, 1, or more)
+            $goldCount = $event->gold ?? 0;
+            $silverCount = $event->silver ?? 0;
+            $bronzeCount = $event->bronze ?? 0;
+
+            // Helper to tally medals
+            $addMedal = function ($team, $medal, $count = 1) use (&$tally) {
+                if (!$team) return;
+
+                $teamId = $team->id;
+
+                if (!isset($tally[$teamId])) {
+                    $tally[$teamId] = [
+                        'team_id' => $teamId,
+                        'team_name' => $team->name,
+                        'team_logo' => $team->team_logo_path ? asset('storage/' . $team->team_logo_path) : null,
+                        'gold' => 0,
+                        'silver' => 0,
+                        'bronze' => 0,
+                    ];
+                }
+
+                $tally[$teamId][$medal] += $count;
+            };
+
+            $addMedal($podium->gold, 'gold', $goldCount);
+            $addMedal($podium->silver, 'silver', $silverCount);
+            $addMedal($podium->bronze, 'bronze', $bronzeCount);
+        }
+
+        // Convert to collection for sorting
+        $sorted = collect($tally)->sort(function ($a, $b) {
+            // Sort by gold DESC, silver DESC, bronze DESC
+            return [$b['gold'], $b['silver'], $b['bronze']] <=> [$a['gold'], $a['silver'], $a['bronze']];
+        })->values();
+
+        return response()->json([
+            'data' => $sorted
+        ], 200);
+    }
+
 }
