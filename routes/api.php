@@ -108,7 +108,14 @@ Route::prefix('v1')->group(function () {
                         Route::get('bracket', [EventController::class, 'bracket']);
                         Route::get('matches', [GameController::class, 'index']);
 
+                        Route::get('schedule', [ScheduleController::class, 'index']);
                         Route::post('schedule/create', [ScheduleController::class, 'store']);
+                        Route::get('schedule/{id}', [ScheduleController::class, 'show']);
+                        Route::patch('schedule/{id}/edit', [ScheduleController::class, 'update']);
+                        Route::delete('schedule/{id}', [ScheduleController::class, 'destroy']);
+
+
+
                         //participants route
                        // Route::get('team_names', [OverallTeamController::class, 'index_team_name']);
                         //Route::get('participants', [ParticipatingTeamController::class, 'index']);
