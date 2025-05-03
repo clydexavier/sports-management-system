@@ -14,9 +14,15 @@ class Podium extends Model
     protected $fillable = [
         'intrams_id',
         'event_id',
-        'gold',
-        'silver',
-        'bronze'
+        'gold_team_id',
+        'silver_team_id',
+        'bronze_team_id'
+    ];
+
+    protected $casts = [
+        'gold_team_id' => 'integer',
+        'silver_team_id' => 'integer',
+        'bronze_team_id' => 'integer',
     ];
 
     public function intramural() 
@@ -31,16 +37,16 @@ class Podium extends Model
     
     public function gold()
     {
-        return $this->has(OverallTeam::class);
+        return $this->belongsTo(OverallTeam::class, 'gold_team_id');
     }
 
     public function silver()
     {
-        return $this->has(OverallTeam::class);
+        return $this->belongsTo(OverallTeam::class, 'silver_team_id');
     }
     
     public function bronze()
     {
-        return $this->has(OverallTeam::class);
+        return $this->belongsTo(OverallTeam::class, 'bronze_team_id');
     }
 }

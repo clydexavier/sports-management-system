@@ -7,6 +7,7 @@ use App\Http\Requests\PodiumRequests\StorePodiumRequest;
 use App\Http\Requests\PodiumRequests\ShowPodiumRequest;
 use App\Http\Requests\PodiumRequests\UpdatePodiumRequest;
 use App\Http\Requests\PodiumRequests\DestroyPodiumRequest;
+use Illuminate\Support\Facades\Storage;
 
 use App\Models\Podium;
 
@@ -14,6 +15,7 @@ use App\Models\Podium;
 class PodiumController extends Controller
 {
     //
+
     public function index(Request $request, string $intrams_id)
     {
         $perPage = 12;
@@ -21,20 +23,45 @@ class PodiumController extends Controller
         $type = $request->query('type');
         $search = $request->query('search');
 
-        $query = Podium::where('intrams_id', $intrams_id);
+        $query = Podium::with([
+            'event',
+            'gold',
+            'silver',
+            'bronze',
+        ])->where('intrams_id', $intrams_id);
 
         if ($type && $type !== 'all') {
             $query->where('type', $type);
         }
 
         if ($search) {
-            $query->where('name', 'like', '%' . $search . '%');
+            $query->whereHas('event', function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%');
+            });
         }
 
         $podiums = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+        $data = $podiums->map(function ($podium) {
+            return [
+                'event' => [
+                    'name' => $podium->event->category . ' ' . $podium->event->name,
+                    'type' => $podium->event->type,
+                ],
+                'gold_team' => $podium->gold?->team_logo_path 
+                    ? asset('storage/' . $podium->gold->team_logo_path) 
+                    : null,
+                'silver_team' => $podium->silver?->team_logo_path 
+                    ? asset('storage/' . $podium->silver->team_logo_path) 
+                    : null,
+                'bronze_team' => $podium->bronze?->team_logo_path 
+                    ? asset('storage/' . $podium->bronze->team_logo_path) 
+                    : null,
+            ];
+        });
+        
         return response()->json([
-            'data' => $podiums->items(),
+            'data' => $data,
             'meta' => [
                 'current_page' => $podiums->currentPage(),
                 'per_page' => $podiums->perPage(),
@@ -42,8 +69,8 @@ class PodiumController extends Controller
                 'last_page' => $podiums->lastPage(),
             ]
         ], 200);
-
     }
+
     
     public function store(StorePodiumRequest $request) 
     {
@@ -77,4 +104,6 @@ class PodiumController extends Controller
 
         return response()->json(204);
     }
+
+    
 }

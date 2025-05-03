@@ -20,9 +20,9 @@ return new class extends Migration
                 ->constrained('events')
                 ->onDelete('cascade');
         
-            $table->foreignId('gold')->nullable()->constrained('overall_teams')->nullOnDelete();
-            $table->foreignId('silver')->nullable()->constrained('overall_teams')->nullOnDelete();
-            $table->foreignId('bronze')->nullable()->constrained('overall_teams')->nullOnDelete();
+            $table->foreignId('gold_team_id')->nullable()->constrained('overall_teams')->nullOnDelete();
+            $table->foreignId('silver_team_id')->nullable()->constrained('overall_teams')->nullOnDelete();
+            $table->foreignId('bronze_team_id')->nullable()->constrained('overall_teams')->nullOnDelete();
             $table->timestamps();
         });
     }
