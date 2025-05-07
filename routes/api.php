@@ -64,8 +64,10 @@ Route::prefix('v1')->group(function () {
             Route::prefix('{intrams_id}')->group(function () {
                 
                 //tally
-                Route::get('tally', [IntramuralGameController::class, 'tally']);
+                Route::get('overall_tally', [IntramuralGameController::class, 'overall_tally']);
+                //tally by category
 
+                
                 // Venues
                 Route::prefix('venues')->group(function () {
                     Route::get('/', [VenueController::class, 'index']);

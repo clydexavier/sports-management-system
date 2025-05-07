@@ -94,7 +94,7 @@ class IntramuralGameController extends Controller
         
     }
 
-    public function tally(Request $request, string $id)
+    public function overall_tally(Request $request, string $id)
     {
         // Load intramural with teams and all podiums + related event and team data
         $intramural = IntramuralGame::with(['teams', 'podiums.event', 'podiums.gold', 'podiums.silver', 'podiums.bronze'])->findOrFail($id);

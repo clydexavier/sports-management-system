@@ -12,7 +12,7 @@ class VarsityPlayerController extends Controller
 {
     public function index(string $intrams_id, Request $request) 
     {
-        $perPage = 12;
+        $perPage = 5;
 
         $search = $request->query('search');
 

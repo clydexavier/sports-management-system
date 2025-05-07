@@ -20,6 +20,7 @@ class PodiumController extends Controller
 
     public function index(Request $request, string $intrams_id)
     {
+        \Log::info('Incoming data: ', $request->all());
         $perPage = 12;
 
         $type = $request->query('type');
@@ -50,15 +51,19 @@ class PodiumController extends Controller
                     'name' => $podium->event->category . ' ' . $podium->event->name,
                     'type' => $podium->event->type,
                 ],
-                'gold_team' => $podium->gold?->team_logo_path 
+                'gold_team_logo' => $podium->gold?->team_logo_path 
                     ? asset('storage/' . $podium->gold->team_logo_path) 
                     : null,
-                'silver_team' => $podium->silver?->team_logo_path 
+                'gold_team_name' => $podium->gold->name,    
+                'silver_team_logo' => $podium->silver?->team_logo_path 
                     ? asset('storage/' . $podium->silver->team_logo_path) 
                     : null,
-                'bronze_team' => $podium->bronze?->team_logo_path 
+                'silver_team_name' => $podium->silver->name,
+                'bronze_team_logo' => $podium->bronze?->team_logo_path 
                     ? asset('storage/' . $podium->bronze->team_logo_path) 
                     : null,
+                'bronze_team_name' => $podium->bronze->name,
+
             ];
         });
         
