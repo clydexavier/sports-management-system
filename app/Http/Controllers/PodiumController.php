@@ -81,7 +81,7 @@ class PodiumController extends Controller
         
         $event = Event::find($validated['event_id']);
         if ($event) {
-            $event->status = 'in progress';
+            $event->status = 'completed';
             $event->save();
         }
         return response()->json($podium, 201);
