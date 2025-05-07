@@ -15,6 +15,7 @@ class Schedule extends Model
         'team_1',
         'team_2',
         'event_id',
+        'venue',
         'intrams_id',
         'challonge_event_id',
         'match_id',

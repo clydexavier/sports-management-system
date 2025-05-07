@@ -71,6 +71,14 @@ class EventController extends Controller
             }*/
     }
 
+    public function event_status(Request $request, string $intrams_id, string $id) 
+    {
+        $event = Event::where('id', $id)->where('intrams_id', $intrams_id)->firstOrFail();
+        
+        return response()->json($event->status);
+
+    }
+
     /**
      * Create an event and sync it with Challonge.
      */

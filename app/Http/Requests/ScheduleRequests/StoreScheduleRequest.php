@@ -47,6 +47,8 @@ class StoreScheduleRequest extends FormRequest
             'team_2' => ['required', 'string', 'max:50'],
             'date' => ['somtimes', 'date'],
             'time' => ['sometimes'],
+            'venue' => ['sometimes', 'string', 'max:50'],
+
         ];
     }
 

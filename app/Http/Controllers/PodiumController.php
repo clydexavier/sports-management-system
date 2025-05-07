@@ -10,6 +10,8 @@ use App\Http\Requests\PodiumRequests\DestroyPodiumRequest;
 use Illuminate\Support\Facades\Storage;
 
 use App\Models\Podium;
+use App\Models\OverallTeam;
+use App\Models\Event;
 
 
 class PodiumController extends Controller
@@ -77,6 +79,11 @@ class PodiumController extends Controller
         $validated = $request->validated();
         $podium = Podium::create($validated);
         
+        $event = Event::find($validated['event_id']);
+        if ($event) {
+            $event->status = 'in progress';
+            $event->save();
+        }
         return response()->json($podium, 201);
     }
 
@@ -85,16 +92,44 @@ class PodiumController extends Controller
         $validated = $request->validated();
         $podium = Podium::where('event_id', $validated['event_id'])->firstOrFail();
 
-        return response->json($podium, 200);
+        $gold_team = OverallTeam::find($podium->gold_team_id);
+        $silver_team = OverallTeam::find($podium->silver_team_id);
+        $bronze_team = OverallTeam::find($podium->bronze_team_id);
+
+        
+        return response()->json([
+            'id' => $podium->id,
+            'intrams_id' => $podium->intrams_id,
+            'event_id' => $podium->event_id,
+            'gold_team_id' => $podium->gold_team_id,
+            'gold_team_name' => $gold_team?->name,
+            'silver_team_id' => $podium->silver_team_id,
+            'silver_team_name' => $silver_team?->name,
+            'bronze_team_id' => $podium->bronze_team_id,
+            'bronze_team_name' => $bronze_team?->name,
+            'created_at' => $podium->created_at,
+            'updated_at' => $podium->updated_at,
+        ]);
     }
 
     public function update(UpdatePodiumRequest $request)
-    {
-        $validated = $request->validated();
-        $podium = Podium::where('event_id', $validated['event_id'])->firstOrFail();
-        $podium->update($validated);
-        return response()->json($podium, 200);
+{
+    $validated = $request->validated();
+
+    $podium = Podium::where('event_id', $validated['event_id'])->firstOrFail();
+
+    $podium->update($validated);
+
+    // Update the related event status to "completed"
+    $event = Event::find($validated['event_id']);
+    if ($event) {
+        $event->status = 'completed';
+        $event->save();
     }
+
+    return response()->json($podium, 200);
+}
+
 
     public function destroy(DestroyPodiumRequest $request)
     {

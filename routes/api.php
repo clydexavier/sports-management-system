@@ -97,6 +97,9 @@ Route::prefix('v1')->group(function () {
                     Route::get('{id}', [EventController::class, 'show']);
                     Route::patch('{id}/edit', [EventController::class, 'update']);
                     Route::delete('{id}', [EventController::class, 'destroy']);
+
+                    Route::get('{id}/status', [EventController::class, 'event_status']);
+
                     
 
                     //start and submit results of event
@@ -136,7 +139,7 @@ Route::prefix('v1')->group(function () {
                        Route::post('podium/create', [PodiumController::class, 'store']);
                        
                        Route::get('podium', [PodiumController::class, 'show']);
-                       Route::patch('podium/edit', [PodiumController::class, 'update']);
+                       Route::patch('podium/update', [PodiumController::class, 'update']);
                        Route::delete('podium', [PodiumController::class, 'destroy']);
                     });
 
@@ -158,7 +161,7 @@ Route::prefix('v1')->group(function () {
                     Route::get('{id}', [DocumentController::class, 'show']); // Get a specific document
                     Route::patch('{id}/edit', [DocumentController::class, 'update']); // Update document details
                     Route::delete('{id}', [DocumentController::class, 'destroy']); // Delete a document
-                    Route::get('{id}/download', [DocumentController::class, 'download']); // Download a document ✅
+                    Route::get('{id}/download', [DocumentController::class, 'download']); // Download a document 
                 });
             });
         });

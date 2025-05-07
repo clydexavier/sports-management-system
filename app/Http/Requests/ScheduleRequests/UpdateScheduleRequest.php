@@ -42,8 +42,10 @@ class UpdateScheduleRequest extends FormRequest
                     return $query->where('event_id', $this->input('event_id'));
                 }),
             ],
-            'date' => ['sometimes', 'date'],
-            'time' => ['sometimes'],
+            'date' => ['sometimes', 'nullable','date'],
+            'time' => ['sometimes', 'nullable'],
+            'venue' => ['sometimes','nullable' ,'string', 'max:50'],
+
         ];
     }
     /**
