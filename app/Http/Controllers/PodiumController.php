@@ -33,10 +33,14 @@ class PodiumController extends Controller
             'bronze',
         ])->where('intrams_id', $intrams_id);
 
+        // Filter by event type (from events table)
         if ($type && $type !== 'all') {
-            $query->where('type', $type);
+            $query->whereHas('event', function ($q) use ($type) {
+                $q->where('type', $type);
+            });
         }
 
+        // Search by event name
         if ($search) {
             $query->whereHas('event', function ($q) use ($search) {
                 $q->where('name', 'like', '%' . $search . '%');
@@ -63,10 +67,9 @@ class PodiumController extends Controller
                     ? asset('storage/' . $podium->bronze->team_logo_path) 
                     : null,
                 'bronze_team_name' => $podium->bronze->name,
-
             ];
         });
-        
+
         return response()->json([
             'data' => $data,
             'meta' => [
@@ -77,6 +80,7 @@ class PodiumController extends Controller
             ]
         ], 200);
     }
+
 
     
     public function store(StorePodiumRequest $request) 
