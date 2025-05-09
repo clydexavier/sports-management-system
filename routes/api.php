@@ -63,6 +63,10 @@ Route::prefix('v1')->group(function () {
             // Nested routes within specific intramural games
             Route::prefix('{intrams_id}')->group(function () {
                 
+
+                //varsity players sport
+                Route::get('vplayers_sport', [VarsityPlayerController::class, 'vplayer_sports']);
+
                 //tally
                 Route::get('overall_tally', [IntramuralGameController::class, 'overall_tally']);
                 //tally by category

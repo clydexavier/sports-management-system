@@ -85,6 +85,7 @@ class EventController extends Controller
     public function store(StoreEventRequest $request)
     {
         $validated = $request->validated();
+        $validated['status'] = "pending";
 
         // Create tournament in Challonge
         $challongeParams = [
