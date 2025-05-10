@@ -28,6 +28,7 @@ return [
     | services the application utilizes. Set this in your ".env" file.
     |
     */
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
 
     'env' => env('APP_ENV', 'production'),
 

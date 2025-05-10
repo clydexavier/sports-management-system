@@ -15,6 +15,7 @@ use App\Http\Controllers\TeamGalleryController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\PodiumController;
+use App\Http\Controllers\GoogleAuthController;
 
 
 
@@ -38,6 +39,10 @@ Route::prefix('v1')->group(function () {
     // Public routes
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
+
+    // Google auth routes
+    Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirectToGoogle']);
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
     
     // Authenticated user routes
     Route::middleware('auth:sanctum')->group(function () {
