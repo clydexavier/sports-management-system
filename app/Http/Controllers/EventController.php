@@ -48,6 +48,16 @@ class EventController extends Controller
 
         $events = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+
+        // Transform event names
+        $transformed = $events->getCollection()->transform(function ($event) {
+            $event->name = $event->category . ' ' . $event->name;
+            return $event;
+        });
+
+        // Replace the collection with the transformed one
+        $events->setCollection($transformed);
+
         return response()->json([
             'data' => $events->items(),
             'meta' => [
@@ -57,18 +67,6 @@ class EventController extends Controller
                 'last_page' => $events->lastPage(),
             ]
         ], 200);
-
-            $challongeTournaments = [];
-            // Fetch Challonge tournaments
-            /*$params = [
-                'state' => $request->query('state', 'all'),
-                'type' => $request->query('type', 'single_elimination')
-            ];
-            foreach ($events as $event) {
-                if ($event->challonge_event_id) {
-                    $challongeTournaments[] = $this->challonge->getTournament($event->challonge_event_id, $params);
-                }
-            }*/
     }
 
     public function event_status(Request $request, string $intrams_id, string $id) 

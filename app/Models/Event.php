@@ -29,4 +29,9 @@ class Event extends Model
         return $this->hasMany(ParticipatingTeam::class);
     }
 
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
+
 }

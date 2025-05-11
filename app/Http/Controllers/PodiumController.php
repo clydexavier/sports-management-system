@@ -67,6 +67,7 @@ class PodiumController extends Controller
                     ? asset('storage/' . $podium->bronze->team_logo_path) 
                     : null,
                 'bronze_team_name' => $podium->bronze->name,
+                'medals' => $podium->event->gold,
             ];
         });
 
@@ -122,22 +123,22 @@ class PodiumController extends Controller
     }
 
     public function update(UpdatePodiumRequest $request)
-{
-    $validated = $request->validated();
+    {
+        $validated = $request->validated();
 
-    $podium = Podium::where('event_id', $validated['event_id'])->firstOrFail();
+        $podium = Podium::where('event_id', $validated['event_id'])->firstOrFail();
 
-    $podium->update($validated);
+        $podium->update($validated);
 
-    // Update the related event status to "completed"
-    $event = Event::find($validated['event_id']);
-    if ($event) {
-        $event->status = 'completed';
-        $event->save();
+        // Update the related event status to "completed"
+        $event = Event::find($validated['event_id']);
+        if ($event) {
+            $event->status = 'completed';
+            $event->save();
+        }
+
+        return response()->json($podium, 200);
     }
-
-    return response()->json($podium, 200);
-}
 
 
     public function destroy(DestroyPodiumRequest $request)

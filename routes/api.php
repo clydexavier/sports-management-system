@@ -16,6 +16,7 @@ use App\Http\Controllers\GameController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\PodiumController;
 use App\Http\Controllers\GoogleAuthController;
+use App\Http\Controllers\TSecretaryController;
 
 
 
@@ -49,6 +50,9 @@ Route::prefix('v1')->group(function () {
         Route::get('logout', [AuthController::class, 'logout']);
         Route::get('users', [UserController::class, 'index']);
         Route::get('user', [UserController::class, 'show']);
+
+        Route::patch('users/{id}/role', [UserController::class, 'update_role']);
+        Route::delete('users/{id}', [UserController::class, 'destroy']);
     });
     
     //GAM
@@ -56,6 +60,8 @@ Route::prefix('v1')->group(function () {
     //tournament secretary
 
     // Admin-only routes
+
+
     Route::middleware(['auth:sanctum', 'admin'])->group(function () {
         // Intramurals
         Route::prefix('intramurals')->group(function () {
@@ -76,7 +82,11 @@ Route::prefix('v1')->group(function () {
                 Route::get('overall_tally', [IntramuralGameController::class, 'overall_tally']);
                 //tally by category
 
-                
+                //
+                Route::get('team_names', [OverallTeamController::class, 'index_team_name']);
+
+                //
+               // Route::get('events', [IntramuralGameController::class, 'events']);
                 // Venues
                 Route::prefix('venues')->group(function () {
                     Route::get('/', [VenueController::class, 'index']);
@@ -177,4 +187,54 @@ Route::prefix('v1')->group(function () {
             });
         });
     });
+
+    // Tournament Secretary Routes
+    Route::middleware(['auth:sanctum', 'tsecretary'])->prefix('tsecretary')->group(function () {
+        // Get current user data
+        Route::get('/user', function (Request $request) {
+            return $request->user();
+        });
+        
+        // Get event details for the user's assigned event
+        Route::get('/event', [TSecretaryController::class, 'getCurrentEvent']);
+
+
+        Route::get('/event/status', [TSecretaryController::class, 'getEventStatus']);
+        Route::get('/event/schedules', [TSecretaryController::class, 'getSchedules']);
+        Route::get('/event/podium', [TSecretaryController::class, 'getPodium']);
+        Route::get('/event/team_names', [TSecretaryController::class, 'getTeamNames']);
+
+
+        // Game management routes
+        Route::prefix('games')->group(function () {
+            Route::get('/', [TSecretaryController::class, 'getGames']);
+            Route::get('/{id}', [TSecretaryController::class, 'getGame']);
+            Route::patch('/{id}/update', [TSecretaryController::class, 'updateGame']);
+            Route::post('/{id}/submit-score', [TSecretaryController::class, 'submitScore']);
+        });
+        
+        // Bracket routes
+        Route::get('/bracket', [TSecretaryController::class, 'getBracket']);
+        
+        // Result routes
+        Route::prefix('result')->group(function () {
+            Route::get('/', [TSecretaryController::class, 'getEventResult']);
+            Route::post('/create', [TSecretaryController::class, 'createPodium']);
+            Route::patch('/update', [TSecretaryController::class, 'updatePodium']);
+
+        });
+        
+        // Podium routes
+        Route::prefix('podiums')->group(function () {
+            Route::get('/', [TSecretaryController::class, 'getPodiums']);
+            Route::post('/create', [TSecretaryController::class, 'createPodium']);
+            Route::patch('/{id}/update', [TSecretaryController::class, 'updatePodium']);
+        });
+        
+        // Tally routes
+        Route::get('/tally', [TSecretaryController::class, 'getTally']);
+    });
+
+
+
 });

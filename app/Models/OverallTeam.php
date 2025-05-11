@@ -44,4 +44,9 @@ class OverallTeam extends Model
         return $this->hasMany(Player::class);
     }
 
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
+
 }

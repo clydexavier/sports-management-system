@@ -40,4 +40,9 @@ class IntramuralGame extends Model
         return $this->hasMany(Document::class);
     }
 
+    public function users()
+    {
+        return $this->hasMany(Users::class);
+    }
+
 }

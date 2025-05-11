@@ -154,5 +154,19 @@ class IntramuralGameController extends Controller
         ], 200);
     }
 
+    public function events(Request $request, string $intrams_id)
+    {
+        $events = Event::where('intrams_id', $intrams_id)
+            ->get(['id', 'name', 'category'])   // get only the fields we need
+            ->map(function ($event) {
+                return [
+                    'id'   => $event->id,
+                    'name' => $event->category . ' ' . $event->name,
+                ];
+            });
+
+        return response()->json($events, 200);
+    }
+
 
 }

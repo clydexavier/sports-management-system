@@ -24,35 +24,46 @@ class GoogleAuthController extends Controller
     {
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
-            
+
             // Find existing user or create new one
             $user = User::firstOrCreate(
                 ['email' => $googleUser->email],
                 [
-                    'name' => $googleUser->name,
-                    'password' => Hash::make(Str::random(24)),
-                    'google_id' => $googleUser->id,
-                    'role' => 'user', // Set default role for new users
+                    'name'       => $googleUser->name,
+                    'password'   => Hash::make(Str::random(24)),
+                    'google_id'  => $googleUser->id,
+                    'avatar_url' => $googleUser->avatar, // Store avatar from Google
+                    'role'       => 'user', // Default role
                 ]
             );
-            
-            // Update Google ID if not already set
+
+            // Update Google ID and avatar URL if not already set or changed
+            $updated = false;
             if (empty($user->google_id)) {
                 $user->google_id = $googleUser->id;
+                $updated = true;
+            }
+
+            if (empty($user->avatar_url) || $user->avatar_url !== $googleUser->avatar) {
+                $user->avatar_url = $googleUser->avatar;
+                $updated = true;
+            }
+
+            if ($updated) {
                 $user->save();
             }
-            
+
             // Create token
             $token = $user->createToken('auth_token')->plainTextToken;
-            
+
             // Redirect to frontend with token
             $redirectUrl = config('app.frontend_url') . '/login?token=' . $token;
             return redirect($redirectUrl);
-            
+
         } catch (\Exception $e) {
-            // Redirect with error
             $redirectUrl = config('app.frontend_url') . '/login?error=' . urlencode($e->getMessage());
             return redirect($redirectUrl);
         }
     }
+
 }
