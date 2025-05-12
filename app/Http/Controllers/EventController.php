@@ -15,6 +15,8 @@ use App\Http\Requests\EventRequests\ResetEventRequest;
 
 use App\Models\Event;
 use App\Models\Schedule;
+use App\Models\IntramuralGame;
+
 
 
 class EventController extends Controller
@@ -87,7 +89,7 @@ class EventController extends Controller
 
         // Create tournament in Challonge
         $challongeParams = [
-            'name' => $validated['category']. " " .$validated['name'],
+            'name' => IntramuralGame::find($validated['intrams_id'])->name ." " .$validated['category']. " " .$validated['name'],
             'tournament_type' => $validated['tournament_type'],
             'hold_third_place_match' => $validated['hold_third_place_match'] ?? true,
             'show_rounds' => true
