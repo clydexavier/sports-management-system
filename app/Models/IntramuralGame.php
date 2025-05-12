@@ -42,7 +42,7 @@ class IntramuralGame extends Model
 
     public function users()
     {
-        return $this->hasMany(Users::class);
+        return $this->hasMany(Users::class);    
     }
 
 }

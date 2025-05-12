@@ -25,6 +25,7 @@ class Player extends Model
         'parents_consent',
         'cor',
         'approved',
+        'role',
     ];
 
 

@@ -34,4 +34,9 @@ class Event extends Model
         return $this->hasMany(User::class);
     }
 
+    public function galleries()
+    {
+        return $this->hasMany(Gallery::class);
+    }
+
 }

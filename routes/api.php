@@ -32,11 +32,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('{intrams_id}/{event_id}/{team_id}/gallery/generate/', [TeamGalleryController::class,'generateGalleryDocx']);
 
 // Version 1 API routes
 Route::prefix('v1')->group(function () {
-    
     // Public routes
     Route::post('login', [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
@@ -135,6 +133,12 @@ Route::prefix('v1')->group(function () {
                         Route::post('players/create', [PlayerController::class, 'store']);
                         Route::patch('players/{id}/edit', [PlayerController::class, 'update']);
                         Route::delete('players/{id}', [PlayerController::class, 'destroy']);
+
+                        //Gallery routes
+                        Route::get('galleries', [TeamGalleryController::class, 'index']);
+                        Route::post('galleries/create', [TeamGalleryController::class,'generateGallery']);
+                        Route::delete('galleries/{id}', [TeamGalleryController::class, 'destroy']);
+                        Route::get('galleries', [TeamGalleryController::class, 'index']);
                         
                         //bracket, matches, and schedule of events
                         Route::get('bracket', [EventController::class, 'bracket']);
