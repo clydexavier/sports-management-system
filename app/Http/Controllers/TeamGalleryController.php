@@ -166,8 +166,8 @@ class TeamGalleryController extends Controller
 
         // Verify event exists and belongs to intrams
         $event = Event::where('id', $event_id)
-                      ->where('intrams_id', $intrams_id)
-                      ->firstOrFail();
+                    ->where('intrams_id', $intrams_id)
+                    ->firstOrFail();
 
         // Fetch data using the existing method (pass route parameters)
         $formData = $this->getForm2Data($request, $intrams_id, $event_id);
@@ -176,18 +176,35 @@ class TeamGalleryController extends Controller
         // Get team for outputPath
         $team = OverallTeam::findOrFail($teamId);
 
-        // Load the template
-        $templatePath = public_path('Form_2_Gallery_Template_With_Placeholders.docx'); // Adjust path as needed
+        // Count the number of players
+        $playerCount = isset($data->players) && is_array($data->players) ? count($data->players) : 0;
+        
+        // Choose the appropriate template based on player count and staff presence
+        // First page template handles players 1-12
+        // Full template handles players 1-21 plus staff
+        if ($playerCount <= 12 && !isset($data->coach) && !isset($data->assistant_coach) && !isset($data->general_manager)) {
+            // Use single page template
+            $templatePath = public_path('Form_2_Gallery_Template_Single_Page.docx');
+        } else {
+            // Use the regular two-page template
+            $templatePath = public_path('Form_2_Gallery_Template_With_Placeholders.docx');
+        }
+
         $templateProcessor = new TemplateProcessor($templatePath);
 
-        // Replace placeholders
+        // Replace basic placeholders
         $templateProcessor->setValue('event.name', $data->event_name);
         $templateProcessor->setValue('event.category', $data->team_category);
         $templateProcessor->setValue('team.name', $data->team_name);
 
-       // Loop through players and replace placeholders - This is crucial and needs careful handling
+        // Define maximum players for each template
+        $maxPlayers = ($templatePath == public_path('Form_2_Gallery_Template_Single_Page.docx')) ? 12 : 21;
+        $firstPageSlots = 12;  // players 1-12 on first page
+
+        // Process players based on the selected template
         if (isset($data->players) && is_array($data->players)) {
-            for ($i = 0; $i < count($data->players); $i++) {
+            // Fill in player data for as many players as we have (up to template max)
+            for ($i = 0; $i < min($playerCount, $maxPlayers); $i++) {
                 $playerNumber = $i + 1;
                 $templateProcessor->setValue("player{$playerNumber}.name", $data->players[$i]->name ?? '');
                 $templateProcessor->setValue("player{$playerNumber}.birthdate", $data->players[$i]->date_of_birth ?? '');
@@ -196,7 +213,6 @@ class TeamGalleryController extends Controller
                 
                 // Handle player pictures
                 if (isset($data->players[$i]->picture) && !empty($data->players[$i]->picture)) {
-                    // Assuming picture is a path to an image file
                     $picturePath = storage_path('app/public/' . $data->players[$i]->picture);
                     
                     if (file_exists($picturePath)) {
@@ -207,89 +223,124 @@ class TeamGalleryController extends Controller
                             'ratio' => false
                         ]);
                     } else {
-                        // If file doesn't exist but there's a URL/path, handle accordingly
-                        $templateProcessor->setValue("player{$playerNumber}.picture", 'Picture Not Found');
+                        // Empty string for missing pictures
+                        $templateProcessor->setValue("player{$playerNumber}.picture", '');
                     }
                 } else {
-                    // No picture available
-                    $templateProcessor->setValue("player{$playerNumber}.picture", 'No Picture Uploaded');
+                    // Empty string for no pictures
+                    $templateProcessor->setValue("player{$playerNumber}.picture", '');
                 }
+            }
+            
+            // Clear unused player placeholders
+            for ($i = $playerCount + 1; $i <= $maxPlayers; $i++) {
+                $templateProcessor->setValue("player{$i}.name", '');
+                $templateProcessor->setValue("player{$i}.birthdate", '');
+                $templateProcessor->setValue("player{$i}.course", '');
+                $templateProcessor->setValue("player{$i}.contact", '');
+                $templateProcessor->setValue("player{$i}.picture", '');
             }
         }
 
-        // Handle coach, assistant coach, and general manager
-        if (isset($data->coach)) {
-            $templateProcessor->setValue("player22.name", $data->coach->name ?? '');
-            $templateProcessor->setValue("player22.birthdate", $data->coach->date_of_birth ?? '');
-            $templateProcessor->setValue("player22.course", $data->coach->course_year ?? '');
-            $templateProcessor->setValue("player22.contact", $data->coach->contact_no ?? '');
-            
-            // Handle coach picture
-            if (isset($data->coach->picture) && !empty($data->coach->picture)) {
-                $picturePath = storage_path('app/public/' . $data->coach->picture);
+        // Only process staff members if using the full template
+        if ($templatePath == public_path('Form_2_Gallery_Template_With_Placeholders.docx')) {
+            // Handle coach (player22)
+            if (isset($data->coach)) {
+                $templateProcessor->setValue("player22.name", $data->coach->name ?? '');
+                $templateProcessor->setValue("player22.birthdate", $data->coach->date_of_birth ?? '');
+                $templateProcessor->setValue("player22.course", $data->coach->course_year ?? '');
+                $templateProcessor->setValue("player22.contact", $data->coach->contact_no ?? '');
                 
-                if (file_exists($picturePath)) {
-                    $templateProcessor->setImageValue("player22.picture", [
-                        'path' => $picturePath,
-                        'width' => 100,
-                        'height' => 120,
-                        'ratio' => false
-                    ]);
+                // Handle coach picture
+                if (isset($data->coach->picture) && !empty($data->coach->picture)) {
+                    $picturePath = storage_path('app/public/' . $data->coach->picture);
+                    
+                    if (file_exists($picturePath)) {
+                        $templateProcessor->setImageValue("player22.picture", [
+                            'path' => $picturePath,
+                            'width' => 100,
+                            'height' => 120,
+                            'ratio' => false
+                        ]);
+                    } else {
+                        $templateProcessor->setValue("player22.picture", '');
+                    }
                 } else {
-                    $templateProcessor->setValue("player22.picture", 'Picture Not Found');
+                    $templateProcessor->setValue("player22.picture", '');
                 }
             } else {
-                $templateProcessor->setValue("player22.picture", 'No Picture Uploaded');
+                // Clear coach placeholders
+                $templateProcessor->setValue("player22.name", '');
+                $templateProcessor->setValue("player22.birthdate", '');
+                $templateProcessor->setValue("player22.course", '');
+                $templateProcessor->setValue("player22.contact", '');
+                $templateProcessor->setValue("player22.picture", '');
             }
-        }
 
-        if (isset($data->assistant_coach)) {
-            $templateProcessor->setValue("player23.name", $data->assistant_coach->name ?? '');
-            $templateProcessor->setValue("player23.birthdate", $data->assistant_coach->date_of_birth ?? '');
-            $templateProcessor->setValue("player23.course", $data->assistant_coach->course_year ?? '');
-            $templateProcessor->setValue("player23.contact", $data->assistant_coach->contact_no ?? '');
-            
-            // Handle assistant coach picture
-            if (isset($data->assistant_coach->picture) && !empty($data->assistant_coach->picture)) {
-                $picturePath = storage_path('app/public/' . $data->assistant_coach->picture);
+            // Handle assistant coach (player23)
+            if (isset($data->assistant_coach)) {
+                $templateProcessor->setValue("player23.name", $data->assistant_coach->name ?? '');
+                $templateProcessor->setValue("player23.birthdate", $data->assistant_coach->date_of_birth ?? '');
+                $templateProcessor->setValue("player23.course", $data->assistant_coach->course_year ?? '');
+                $templateProcessor->setValue("player23.contact", $data->assistant_coach->contact_no ?? '');
                 
-                if (file_exists($picturePath)) {
-                    $templateProcessor->setImageValue("player23.picture", [
-                        'path' => $picturePath,
-                        'width' => 100,
-                        'height' => 120,
-                        'ratio' => false
-                    ]);
+                // Handle assistant coach picture
+                if (isset($data->assistant_coach->picture) && !empty($data->assistant_coach->picture)) {
+                    $picturePath = storage_path('app/public/' . $data->assistant_coach->picture);
+                    
+                    if (file_exists($picturePath)) {
+                        $templateProcessor->setImageValue("player23.picture", [
+                            'path' => $picturePath,
+                            'width' => 100,
+                            'height' => 120,
+                            'ratio' => false
+                        ]);
+                    } else {
+                        $templateProcessor->setValue("player23.picture", '');
+                    }
                 } else {
-                    $templateProcessor->setValue("player23.picture", 'Picture Not Found');
+                    $templateProcessor->setValue("player23.picture", '');
                 }
             } else {
-                $templateProcessor->setValue("player23.picture", 'No Picture Uploaded');
+                // Clear assistant coach placeholders
+                $templateProcessor->setValue("player23.name", '');
+                $templateProcessor->setValue("player23.birthdate", '');
+                $templateProcessor->setValue("player23.course", '');
+                $templateProcessor->setValue("player23.contact", '');
+                $templateProcessor->setValue("player23.picture", '');
             }
-        }
 
-        if (isset($data->general_manager)) {
-            $templateProcessor->setValue("player24.name", $data->general_manager->name ?? '');
-            $templateProcessor->setValue("player24.birthdate", $data->general_manager->date_of_birth ?? '');
-            $templateProcessor->setValue("player24.course", $data->general_manager->course_year ?? '');
-            $templateProcessor->setValue("player24.contact", $data->general_manager->contact_no ?? '');
-            
-            // Handle general manager picture
-            if (isset($data->general_manager->picture) && !empty($data->general_manager->picture)) {
-                $picturePath = storage_path('app/public/' . $data->general_manager->picture);
+            // Handle general manager (player24)
+            if (isset($data->general_manager)) {
+                $templateProcessor->setValue("player24.name", $data->general_manager->name ?? '');
+                $templateProcessor->setValue("player24.birthdate", $data->general_manager->date_of_birth ?? '');
+                $templateProcessor->setValue("player24.course", $data->general_manager->course_year ?? '');
+                $templateProcessor->setValue("player24.contact", $data->general_manager->contact_no ?? '');
                 
-                if (file_exists($picturePath)) {
-                    $templateProcessor->setImageValue("player24.picture", [
-                        'path' => $picturePath,
-                        'width' => 100,
-                        'height' => 120,
-                        'ratio' => false
-                    ]);
+                // Handle general manager picture
+                if (isset($data->general_manager->picture) && !empty($data->general_manager->picture)) {
+                    $picturePath = storage_path('app/public/' . $data->general_manager->picture);
+                    
+                    if (file_exists($picturePath)) {
+                        $templateProcessor->setImageValue("player24.picture", [
+                            'path' => $picturePath,
+                            'width' => 100,
+                            'height' => 120,
+                            'ratio' => false
+                        ]);
+                    } else {
+                        $templateProcessor->setValue("player24.picture", '');
+                    }
                 } else {
-                    $templateProcessor->setValue("player24.picture", 'Picture Not Found');
+                    $templateProcessor->setValue("player24.picture", '');
                 }
             } else {
-                $templateProcessor->setValue("player24.picture", 'No Picture Uploaded');
+                // Clear general manager placeholders
+                $templateProcessor->setValue("player24.name", '');
+                $templateProcessor->setValue("player24.birthdate", '');
+                $templateProcessor->setValue("player24.course", '');
+                $templateProcessor->setValue("player24.contact", '');
+                $templateProcessor->setValue("player24.picture", '');
             }
         }
 
@@ -304,6 +355,8 @@ class TeamGalleryController extends Controller
         
         $storedFilePath = "galleries/" . $filename;
         $fullPath = storage_path('app/public/' . $storedFilePath);
+        
+        // Save document with processed placeholders
         $templateProcessor->saveAs($fullPath);
         
         // Create Gallery record in the database
