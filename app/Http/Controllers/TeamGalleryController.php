@@ -112,14 +112,14 @@ class TeamGalleryController extends Controller
             'screening_date' => Carbon::now()->format('Y-m-d'),
             'team_name' => $team->name,
             'team_category' => $event->category ?? '',
-            'team_logo' => $team->team_logo_path ? url(Storage::url($team->team_logo_path)) : null,
+            'team_logo' => $team->team_logo_path ? $team->team_logo_path : null,
             'players' => $players->map(function ($player) {
                 return [
                     'name' => $player->name,
                     'date_of_birth' => $player->birthdate,
                     'course_year' => $player->course_year,
                     'contact_no' => $player->contact,
-                    'picture' => $player->picture ? url(Storage::url($player->picture)) : null,
+                    'picture' => $player->picture ? $player->picture : null,
                     'is_varsity' => $player->is_varsity,
                 ];
             }),
@@ -128,21 +128,21 @@ class TeamGalleryController extends Controller
                 'date_of_birth' => $coach->birthdate,
                 'course_year' => $coach->course_year,
                 'contact_no' => $coach->contact,
-                'picture' => $coach->picture ? url(Storage::url($coach->picture)) : null,
+                'picture' => $coach->picture ? $player->picture : null,
             ] : null,
             'assistant_coach' => $assistantCoach ? [
                 'name' => $assistantCoach->name,
                 'date_of_birth' => $assistantCoach->birthdate,
                 'course_year' => $assistantCoach->course_year,
                 'contact_no' => $assistantCoach->contact,
-                'picture' => $assistantCoach->picture ? url(Storage::url($assistantCoach->picture)) : null,
+                'picture' => $assistantCoach->picture ? $player->picture : null,
             ] : null,
             'general_manager' => $generalManager ? [
                 'name' => $generalManager->name,
                 'date_of_birth' => $generalManager->birthdate,
                 'course_year' => $generalManager->course_year,
                 'contact_no' => $generalManager->contact,
-                'picture' => $generalManager->picture ? url(Storage::url($generalManager->picture)) : null,
+                'picture' => $generalManager->picture ? $player->picture : null,
             ] : null,
         ];
 
@@ -185,7 +185,7 @@ class TeamGalleryController extends Controller
         $templateProcessor->setValue('event.category', $data->team_category);
         $templateProcessor->setValue('team.name', $data->team_name);
 
-        // Loop through players and replace placeholders - This is crucial and needs careful handling
+       // Loop through players and replace placeholders - This is crucial and needs careful handling
         if (isset($data->players) && is_array($data->players)) {
             for ($i = 0; $i < count($data->players); $i++) {
                 $playerNumber = $i + 1;
@@ -193,8 +193,27 @@ class TeamGalleryController extends Controller
                 $templateProcessor->setValue("player{$playerNumber}.birthdate", $data->players[$i]->date_of_birth ?? '');
                 $templateProcessor->setValue("player{$playerNumber}.course", $data->players[$i]->course_year ?? '');
                 $templateProcessor->setValue("player{$playerNumber}.contact", $data->players[$i]->contact_no ?? '');
-                // Handle player pictures -  This is complex, PhpWord might need image insertion, not simple replacement
-                // For simplicity, I'm skipping image replacement here. You'll need to research PhpWord's image functionality
+                
+                // Handle player pictures
+                if (isset($data->players[$i]->picture) && !empty($data->players[$i]->picture)) {
+                    // Assuming picture is a path to an image file
+                    $picturePath = storage_path('app/public/' . $data->players[$i]->picture);
+                    
+                    if (file_exists($picturePath)) {
+                        $templateProcessor->setImageValue("player{$playerNumber}.picture", [
+                            'path' => $picturePath,
+                            'width' => 140,
+                            'height' => 140,
+                            'ratio' => false
+                        ]);
+                    } else {
+                        // If file doesn't exist but there's a URL/path, handle accordingly
+                        $templateProcessor->setValue("player{$playerNumber}.picture", 'Picture Not Found');
+                    }
+                } else {
+                    // No picture available
+                    $templateProcessor->setValue("player{$playerNumber}.picture", 'No Picture Uploaded');
+                }
             }
         }
 
@@ -204,6 +223,24 @@ class TeamGalleryController extends Controller
             $templateProcessor->setValue("player22.birthdate", $data->coach->date_of_birth ?? '');
             $templateProcessor->setValue("player22.course", $data->coach->course_year ?? '');
             $templateProcessor->setValue("player22.contact", $data->coach->contact_no ?? '');
+            
+            // Handle coach picture
+            if (isset($data->coach->picture) && !empty($data->coach->picture)) {
+                $picturePath = storage_path('app/public/' . $data->coach->picture);
+                
+                if (file_exists($picturePath)) {
+                    $templateProcessor->setImageValue("player22.picture", [
+                        'path' => $picturePath,
+                        'width' => 100,
+                        'height' => 120,
+                        'ratio' => false
+                    ]);
+                } else {
+                    $templateProcessor->setValue("player22.picture", 'Picture Not Found');
+                }
+            } else {
+                $templateProcessor->setValue("player22.picture", 'No Picture Uploaded');
+            }
         }
 
         if (isset($data->assistant_coach)) {
@@ -211,6 +248,24 @@ class TeamGalleryController extends Controller
             $templateProcessor->setValue("player23.birthdate", $data->assistant_coach->date_of_birth ?? '');
             $templateProcessor->setValue("player23.course", $data->assistant_coach->course_year ?? '');
             $templateProcessor->setValue("player23.contact", $data->assistant_coach->contact_no ?? '');
+            
+            // Handle assistant coach picture
+            if (isset($data->assistant_coach->picture) && !empty($data->assistant_coach->picture)) {
+                $picturePath = storage_path('app/public/' . $data->assistant_coach->picture);
+                
+                if (file_exists($picturePath)) {
+                    $templateProcessor->setImageValue("player23.picture", [
+                        'path' => $picturePath,
+                        'width' => 100,
+                        'height' => 120,
+                        'ratio' => false
+                    ]);
+                } else {
+                    $templateProcessor->setValue("player23.picture", 'Picture Not Found');
+                }
+            } else {
+                $templateProcessor->setValue("player23.picture", 'No Picture Uploaded');
+            }
         }
 
         if (isset($data->general_manager)) {
@@ -218,6 +273,24 @@ class TeamGalleryController extends Controller
             $templateProcessor->setValue("player24.birthdate", $data->general_manager->date_of_birth ?? '');
             $templateProcessor->setValue("player24.course", $data->general_manager->course_year ?? '');
             $templateProcessor->setValue("player24.contact", $data->general_manager->contact_no ?? '');
+            
+            // Handle general manager picture
+            if (isset($data->general_manager->picture) && !empty($data->general_manager->picture)) {
+                $picturePath = storage_path('app/public/' . $data->general_manager->picture);
+                
+                if (file_exists($picturePath)) {
+                    $templateProcessor->setImageValue("player24.picture", [
+                        'path' => $picturePath,
+                        'width' => 100,
+                        'height' => 120,
+                        'ratio' => false
+                    ]);
+                } else {
+                    $templateProcessor->setValue("player24.picture", 'Picture Not Found');
+                }
+            } else {
+                $templateProcessor->setValue("player24.picture", 'No Picture Uploaded');
+            }
         }
 
         // Generate unique filename
@@ -359,15 +432,6 @@ class TeamGalleryController extends Controller
 
     public function destroy(Request $request, string $intrams_id, string $event_id, string $id) 
     {
-        $validator = Validator::make($request->all(), [
-            'team_id' => 'required|exists:overall_teams,id',
-        ]);
-        
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-        
-        $team_id = $request->input('team_id');
         
         // Verify event exists and belongs to intrams
         $event = Event::where('id', $event_id)
@@ -377,7 +441,6 @@ class TeamGalleryController extends Controller
         // Validate the gallery belongs to the specified event and team
         $gallery = Gallery::where('id', $id)
             ->where('event_id', $event_id)
-            ->where('team_id', $team_id)
             ->firstOrFail();
 
         // Delete the file using Storage facade

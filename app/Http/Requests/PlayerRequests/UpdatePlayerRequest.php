@@ -54,9 +54,9 @@ class UpdatePlayerRequest extends FormRequest
                 return $query->where('event_id', $this->event_id);
             }),
         ],
-        'course_year' => ['nullable', 'string', 'max:255'],
-        'contact_no' => ['nullable', 'string', 'max:255'],
-        'date_of_birth' => ['nullable', 'date', 'max:255'],
+        'course_year' => ['sometimes', 'string', 'max:255'],
+        'contact' => ['sometimes', 'string', 'max:255'],
+        'birthdate' => ['sometimes', 'date', 'max:255'],
         'approved' => ['sometimes', 'boolean'],
         'picture' => ['nullable', 'file', 'mimes:,jpg,jpeg,png', 'max:2048'],
         'medical_certificate' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],

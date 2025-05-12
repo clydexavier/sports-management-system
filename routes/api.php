@@ -136,6 +136,8 @@ Route::prefix('v1')->group(function () {
 
                         //Gallery routes
                         Route::get('galleries', [TeamGalleryController::class, 'index']);
+                        Route::get('galleries/xd', [TeamGalleryController::class,'getForm2Data']);
+
                         Route::post('galleries/create', [TeamGalleryController::class,'generateGallery']);
                         Route::delete('galleries/{id}', [TeamGalleryController::class, 'destroy']);
                         Route::get('galleries', [TeamGalleryController::class, 'index']);

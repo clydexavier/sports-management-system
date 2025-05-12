@@ -41,9 +41,9 @@ class StorePlayerRequest extends FormRequest
                     return $query->where('intrams_id', $this->intrams_id);
                 }),
             ],
-            'course_year' => ['nullable', 'string', 'max:255'],
-            'contact_no' => ['nullable', 'string', 'max:255'],
-            'date_of_birth' => ['nullable', 'date', 'max:255'],
+            'course_year' => ['required', 'string', 'max:255'],
+            'contact' => ['required', 'string', 'max:255'],
+            'birthdate' => ['required', 'date', 'max:255'],
             'picture' => ['nullable', 'file', 'mimes:,jpg,jpeg,png', 'max:2048'],
             'medical_certificate' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
             'parents_consent' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
