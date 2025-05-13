@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 
+
 class ShowEventRequest extends FormRequest
 {
     /**

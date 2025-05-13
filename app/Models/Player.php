@@ -12,14 +12,20 @@ class Player extends Model
     protected $fillable = [
         'name',
         'id_number',
+        'birthdate',
+        'course_year',
+        'contact',
         'is_varsity',
         'sport',
-        'participant_id',
         'intrams_id',
+        'team_id',
+        'event_id',
+        'picture',
         'medical_certificate',
         'parents_consent',
         'cor',
         'approved',
+        'role',
     ];
 
 
@@ -34,10 +40,9 @@ class Player extends Model
         return $this->belongsTo(IntramuralGame::class, 'intrams_id');
     }
 
-    public function participating_team() {
-        return $this->belongsTo(ParticipatingTeam::class, 'participant_id');
+    public function overall_team() {
+        return $this->belongsTo(OverallTeam::class, 'team_id');
     }
-
 
 
     public function isVarsity() {

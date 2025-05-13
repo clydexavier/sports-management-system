@@ -1,49 +1,43 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Models\IntramuralGame;
 use App\Models\Player;
+use App\Models\Event;
+
 use Illuminate\Support\Facades\Storage;
 
 use Illuminate\Http\Request;
-use App\Models\IntramuralGame;
 use App\Http\Requests\PlayerRequests\StorePlayerRequest;
 use App\Http\Requests\PlayerRequests\UpdatePlayerRequest;
 use App\Http\Requests\PlayerRequests\ShowPlayerRequest;
 use App\Http\Requests\PlayerRequests\DestroyPlayerRequest;
 
-
 class PlayerController extends Controller
 {
-    //
-    public function index(Request $request, string $intrams_id, string $event_id, string $participant_id)
+    public function index(Request $request, string $intrams_id, string $event_id)
     {
         \Log::info('Incoming data: ', $request->all());
         $perPage = 12;
         
         $approved = $request->query('approved');
         $search = $request->query('search');
+        $team_id = $request->query('activeTab');
         
-        $query = Player::where('participant_id', $participant_id);
-        
+        $query = Player::where('event_id', $event_id)->where('intrams_id', $intrams_id);
+
+        if ($team_id && $team_id !== 'All') {
+            $query->where('team_id', $team_id);
+        }
+
         if ($approved && $approved !== 'All') {
             $query->where('approved', $approved);
         }
-        
+
         if ($search) {
             $query->where('name', 'like', '%' . $search . '%');
         }
-        /*
-        $teams = $query->orderBy('created_at', 'desc')->paginate($perPage);
-        
-        // Transform the data to include the full URL for team logos
-        $teamsData = $teams->items();
-        foreach ($teamsData as $team) {
-            if ($team->team_logo_path) {
-                $team->team_logo_path = asset('storage/' . $team->team_logo_path);            
-            }
-        }
-        */
-
 
         $players = $query->orderBy('created_at', 'desc')->paginate($perPage);
         $playersData = $players->items();
@@ -57,6 +51,9 @@ class PlayerController extends Controller
             if ($player->parents_consent) {
                 $player->parents_consent = asset('storage/' . $player->parents_consent);            
             }
+            if ($player->picture) {
+                $player->picture = asset('storage/' . $player->picture);
+            }
         }
 
         return response()->json([
@@ -68,8 +65,6 @@ class PlayerController extends Controller
                 'last_page' => $players->lastPage(),
             ]
         ], 200);
-
-        
     }
 
     public function store(StorePlayerRequest $request)
@@ -93,17 +88,21 @@ class PlayerController extends Controller
             $validated['parents_consent'] = $path;
         }
 
+        if ($request->hasFile('picture')) {
+            $path = $request->file('picture')->store('player_pictures', 'public');
+            $validated['picture'] = $path;
+        }
+
         $validated['is_varsity'] = false;
         $validated['approved'] = false;
 
-        $participatingTeam = \App\Models\ParticipatingTeam::with('event')->find($validated['participant_id']);
-
-        if ($participatingTeam && $participatingTeam->event) {
-            $eventType = $participatingTeam->event->category; // e.g., "Men" or "Women"
-            $eventName = $participatingTeam->event->name;     // e.g., "Basketball"
-            $validated['sport'] = strtolower($eventType . ' ' . $eventName); // e.g., "men basketball"
+        $event = Event::find($validated['event_id']);
+        if ($event) {
+            $eventType = $event->category;
+            $eventName = $event->name;
+            $validated['sport'] = $eventType . ' ' . $eventName;
         } else {
-            $validated['sport'] = null; // or handle fallback
+            $validated['sport'] = null;
         }
 
         $player = Player::create($validated);
@@ -116,26 +115,25 @@ class PlayerController extends Controller
         \Log::info('Incoming data:', $request->all());
 
         $validated = $request->validated();
-    
+
         \Log::info('Validated data:', $validated);
 
         $player = Player::where('id', $validated['id'])
-                        ->where('participant_id', $validated['participant_id'])
+                        ->where('event_id', $validated['event_id'])
                         ->firstOrFail();
 
-        // Handle file removals
         $remove_med_cert = $request->input('remove_medical_certificate', false);
         $remove_cor = $request->input('remove_cor', false);
         $remove_parents_consent = $request->input('remove_parents_consent', false);
+        $remove_picture = $request->input('remove_picture', false);
 
         if ($request->has('id_number')) {
-            if ($player->id_number !== $validated['id_number']) 
-                // Remove it to avoid unnecessary update
+            if ($player->id_number !== $validated['id_number']) {
                 unset($validated['id_number']);
-            
+            }
         }
 
-        // Handle medical certificate
+        // medical_certificate
         if ($request->hasFile('medical_certificate')) {
             if ($player->medical_certificate && Storage::disk('public')->exists($player->medical_certificate)) {
                 Storage::disk('public')->delete($player->medical_certificate);
@@ -149,7 +147,7 @@ class PlayerController extends Controller
             $validated['medical_certificate'] = null;
         }
 
-        // Handle COR
+        // cor
         if ($request->hasFile('cor')) {
             if ($player->cor && Storage::disk('public')->exists($player->cor)) {
                 Storage::disk('public')->delete($player->cor);
@@ -163,7 +161,7 @@ class PlayerController extends Controller
             $validated['cor'] = null;
         }
 
-        // Handle Parents Consent
+        // parents_consent
         if ($request->hasFile('parents_consent')) {
             if ($player->parents_consent && Storage::disk('public')->exists($player->parents_consent)) {
                 Storage::disk('public')->delete($player->parents_consent);
@@ -177,7 +175,20 @@ class PlayerController extends Controller
             $validated['parents_consent'] = null;
         }
 
-        // Update the player with validated data
+        // picture
+        if ($request->hasFile('picture')) {
+            if ($player->picture && Storage::disk('public')->exists($player->picture)) {
+                Storage::disk('public')->delete($player->picture);
+            }
+            $path = $request->file('picture')->store('player_pictures', 'public');
+            $validated['picture'] = $path;
+        } elseif ($remove_picture) {
+            if ($player->picture && Storage::disk('public')->exists($player->picture)) {
+                Storage::disk('public')->delete($player->picture);
+            }
+            $validated['picture'] = null;
+        }
+
         $player->update($validated);
 
         return response()->json([
@@ -185,25 +196,25 @@ class PlayerController extends Controller
             'player' => $player
         ], 200);
     }
+
     public function destroy(DestroyPlayerRequest $request)
     {
         \Log::info('Incoming data:', $request->all());
 
         $validated = $request->validated();
-        $player = Player::where('id', $validated['id'])
-                        ->where('participant_id', $validated['participant_id'])
-                        ->firstOrFail();
+        $player = Player::where('id', $validated['id'])->firstOrFail();
 
-        if ($player->medical_certificate && Storage::disk('public')->exists($player->medical_certificate)) {
-            Storage::disk('public')->delete($player->medical_certificate);
-        }
+        $files = [
+            $player->medical_certificate,
+            $player->cor,
+            $player->parents_consent,
+            $player->picture
+        ];
 
-        if ($player->cor && Storage::disk('public')->exists($player->cor)) {
-            Storage::disk('public')->delete($player->cor);
-        }
-
-        if ($player->parents_consent && Storage::disk('public')->exists($player->parents_consent)) {
-            Storage::disk('public')->delete($player->parents_consent);
+        foreach ($files as $file) {
+            if ($file && Storage::disk('public')->exists($file)) {
+                Storage::disk('public')->delete($file);
+            }
         }
 
         $player->delete();

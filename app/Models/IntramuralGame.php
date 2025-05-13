@@ -18,14 +18,18 @@ class IntramuralGame extends Model
 
     public function teams() 
     {
-        return $this->hasMany(OverallTeam::class);
+        return $this->hasMany(OverallTeam::class, 'intrams_id');
     }
 
     public function events() 
     {
-        return $this->hasMany(Event::class);
+        return $this->hasMany(Event::class, 'intrams_id');
     }
 
+    public function podiums()
+    {
+        return $this->hasMany(Podium::class, 'intrams_id');
+    }
     public function players() 
     {
         return $this->hasMany(Player::class);
@@ -34,6 +38,11 @@ class IntramuralGame extends Model
     public function documents() 
     {
         return $this->hasMany(Document::class);
+    }
+
+    public function users()
+    {
+        return $this->hasMany(Users::class);    
     }
 
 }

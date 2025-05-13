@@ -14,6 +14,10 @@ use App\Http\Requests\EventRequests\FinalizeEventRequest;
 use App\Http\Requests\EventRequests\ResetEventRequest;
 
 use App\Models\Event;
+use App\Models\Schedule;
+use App\Models\IntramuralGame;
+
+
 
 class EventController extends Controller
 {
@@ -46,6 +50,16 @@ class EventController extends Controller
 
         $events = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+
+        // Transform event names
+        $transformed = $events->getCollection()->transform(function ($event) {
+            $event->name = $event->category . ' ' . $event->name;
+            return $event;
+        });
+
+        // Replace the collection with the transformed one
+        $events->setCollection($transformed);
+
         return response()->json([
             'data' => $events->items(),
             'meta' => [
@@ -55,18 +69,14 @@ class EventController extends Controller
                 'last_page' => $events->lastPage(),
             ]
         ], 200);
+    }
 
-            $challongeTournaments = [];
-            // Fetch Challonge tournaments
-            /*$params = [
-                'state' => $request->query('state', 'all'),
-                'type' => $request->query('type', 'single_elimination')
-            ];
-            foreach ($events as $event) {
-                if ($event->challonge_event_id) {
-                    $challongeTournaments[] = $this->challonge->getTournament($event->challonge_event_id, $params);
-                }
-            }*/
+    public function event_status(Request $request, string $intrams_id, string $id) 
+    {
+        $event = Event::where('id', $id)->where('intrams_id', $intrams_id)->firstOrFail();
+        
+        return response()->json($event->status);
+
     }
 
     /**
@@ -75,12 +85,14 @@ class EventController extends Controller
     public function store(StoreEventRequest $request)
     {
         $validated = $request->validated();
+        $validated['status'] = "pending";
 
         // Create tournament in Challonge
         $challongeParams = [
-            'name' => $validated['category']. " " .$validated['name'],
+            'name' => IntramuralGame::find($validated['intrams_id'])->name ." " .$validated['category']. " " .$validated['name'],
             'tournament_type' => $validated['tournament_type'],
-            'hold_third_place_match' => $validated['hold_third_place_match'] ?? false
+            'hold_third_place_match' => $validated['hold_third_place_match'] ?? true,
+            'show_rounds' => true
         ];
         $challongeResponse = $this->challonge->createTournament($challongeParams);
 
@@ -112,6 +124,26 @@ class EventController extends Controller
         $challongeTournament = $this->challonge->getTournament($event->challonge_event_id, $params);
         return response()->json($challongeTournament['tournament']['name'], 200);
     }
+
+    public function bracket(Request $request, string $intrams_id, string $event_id)
+    {
+        $event = Event::where('id', $event_id)
+            ->where('intrams_id', $intrams_id)
+            ->firstOrFail();
+
+        // Get full tournament details from Challonge
+        $challongeTournament = $this->challonge->getTournament($event->challonge_event_id);
+
+        // Extract the bracket URL (e.g., 'ku8g556h')
+        $tournamentUrl = $challongeTournament['tournament']['url'] ?? null;
+
+        if (!$tournamentUrl) {
+            return response()->json(['message' => 'Tournament URL not found'], 404);
+        }
+
+        return response()->json(['bracket_id' => $tournamentUrl, 'status' => $event->status], 200);
+    }
+
 
     /**
      * Update event and sync changes with Challonge.
@@ -169,28 +201,88 @@ class EventController extends Controller
     public function start(StartEventRequest $request)
     {
         $validated = $request->validated();
-
+       
         $event = Event::where('id', $validated['id'])
             ->where('intrams_id', $validated['intrams_id'])
             ->firstOrFail();
-
-        $params = [
-            'include_participants' => $request->query('include_participants', false)
-        ];
-
-        $response = $this->challonge->startTournament($event->challonge_event_id, $params);
-
-        // Check if the Challonge response indicates a successful start
-        if (isset($response['tournament'])) {
-            // Update the event status
-            $event->status = 'in progress';
-            $event->save();
+       
+        $participantsInput = $request->input('participants', []);
+       
+        if (empty($participantsInput)) {
+            return response()->json(['message' => 'Participants data is required.'], 422);
         }
 
-        return response()->json($response);
+        // Wrap in expected Challonge format
+        $payload = [
+            'api_key' => env('CHALLONGE_API_KEY'),
+            'participants' => $participantsInput,
+        ];
+        // Send to Challonge
+        $addResponse = $this->challonge->addTournamentParticipants($event->challonge_event_id, $payload);
+        
+        // Check if participants were added successfully
+        if (empty($addResponse) || !isset($addResponse[0]['participant'])) {
+            return response()->json(['message' => 'Failed to add participants to tournament.'], 500);
+        }
+
+        // Start the tournament
+        $startResponse = $this->challonge->startTournament($event->challonge_event_id);
+        
+        if (!isset($startResponse['tournament'])) {
+            return response()->json(['message' => 'Failed to start tournament.'], 500);
+        }
+    
+        $event->status = 'in progress';
+        $event->save();
+
+        // Fetch matches
+        $allMatches = $this->challonge->getMatches($event->challonge_event_id);
+        $matches = collect($allMatches)->map(fn($item) => $item['match'] ?? $item);
+        $playOrderMap = $matches->pluck('suggested_play_order', 'id')->all();
+
+        // Fetch participants
+        $participants = $this->challonge->getTournamentParticipants($event->challonge_event_id);
+        $participantMap = collect($participants)->mapWithKeys(function ($item) {
+            $participant = $item['participant'] ?? $item;
+            return [$participant['id'] => $participant['name']];
+        });
+
+        // Resolve player names
+        $resolvePlayerName = function ($match, $key, $prereqKey, $isLoserKey) use ($participantMap, $playOrderMap) {
+            $id = $match[$key];
+            if (isset($participantMap[$id])) {
+                return $participantMap[$id];
+            }
+
+            $prereqId = $match[$prereqKey] ?? null;
+            if ($prereqId && isset($playOrderMap[$prereqId])) {
+                $prefix = $match[$isLoserKey] ? 'L' : 'W';
+                return "{$prefix}{$playOrderMap[$prereqId]}";
+            }
+
+            return 'TBD';
+        };
+
+        // Create schedule entries for each match
+        foreach ($matches as $match) {
+            $scheduleData = [
+                'match_id' => (string) $match['id'],
+                'challonge_event_id' => $event->challonge_event_id,
+                'event_id' => $event->id,
+                'intrams_id' => $event->intrams_id,
+                'team_1' => (string) ($match['player1_id'] ?? '0'),
+                'team_2' => (string) ($match['player2_id'] ?? '0'),
+                'team1_name' => $resolvePlayerName($match, 'player1_id', 'player1_prereq_match_id', 'player1_is_prereq_match_loser'),
+                'team2_name' => $resolvePlayerName($match, 'player2_id', 'player2_prereq_match_id', 'player2_is_prereq_match_loser'),
+                'date' => null,
+                'time' => null,
+            ];
+            // Store schedule directly via model (bypassing request validation)
+            Schedule::create($scheduleData);
+        }
+
+        return response()->json($startResponse);
     }
-
-
     /**
      * Finalize an event/tournament.
      */

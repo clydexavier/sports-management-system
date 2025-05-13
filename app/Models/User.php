@@ -23,6 +23,12 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'google_id',
+        'intrams_id',
+        'event_id',
+        'team_id',
+        'avatar_url'
+
     ];
 
     /**
@@ -44,4 +50,20 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function intramural()
+    {
+        return $this->belongsTo(IntramuralGame::class, 'intrams_id');
+    }
+
+    public function event()
+    {
+        return $this->belongsTo(Event::class, 'event_id');
+    }
+
+    public function team()
+{
+    return $this->belongsTo(OverallTeam::class, 'team_id');
+}
+
 }

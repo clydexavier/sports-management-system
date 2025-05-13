@@ -6,13 +6,14 @@ use Illuminate\Http\Request;
 use App\Http\Requests\PlayerRequests\StoreVarsityPlayerRequest;
 use App\Http\Requests\PlayerRequests\UpdateVarsityPlayerRequest;
 use App\Http\Requests\PlayerRequests\DestroyVarsityPlayerRequest;
+use App\Http\Requests\PlayerRequests\TeamsVarsityPlayerRequest;
 use App\Models\Player;
 
 class VarsityPlayerController extends Controller
 {
     public function index(string $intrams_id, Request $request) 
     {
-        $perPage = 12;
+        $perPage = 5;
 
         $search = $request->query('search');
 
@@ -64,6 +65,19 @@ class VarsityPlayerController extends Controller
             'message' => 'Varsity player updated successfully',
             'varsity_player' => $varsity_player
         ], 200);
+    }
+
+    public function vplayer_sports(TeamsVarsityPlayerRequest $request)
+    {
+        $validated = $request->validated();
+        $sports = Player::where('is_varsity', true)->where('intrams_id', $validated['intrams_id'])
+        ->whereNotNull('sport')
+        ->distinct()
+        ->pluck('sport');
+
+    return response()->json([
+        'data' => $sports,
+    ], 200);
     }
 
     public function destroy(DestroyVarsityPlayerRequest $request) 

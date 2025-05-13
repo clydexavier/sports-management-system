@@ -19,7 +19,7 @@ class OverallTeamController extends Controller
     public function index(Request $request, string $intrams_id)
     {
         \Log::info('Incoming data: ', $request->all());
-        $perPage = 12;
+        $perPage = 4;
         
         $type = $request->query('type');
         $search = $request->query('search');

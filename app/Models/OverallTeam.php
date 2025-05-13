@@ -30,7 +30,7 @@ class OverallTeam extends Model
         'total_silver' => 'integer',
         'total_bronze' => 'integer',
         'name' => 'string',
-        'teama_logo_path' => 'string',
+        'team_logo_path' => 'string',
     ];
 
     public function intramural_game()
@@ -38,14 +38,20 @@ class OverallTeam extends Model
         return $this->belongsTo(IntramuralGame::class, 'intrams_id');
     }
 
-    public function participating_teams()
-    {
-        return $this->hasMany(ParticipatingTeam::class);
-    }
 
     public function players()
     {
         return $this->hasMany(Player::class);
+    }
+
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
+
+    public function galleries()
+    {
+        return $this->hasMany(Gallery::class);
     }
 
 }

@@ -5,6 +5,9 @@ use Illuminate\Http\Request;
 use App\Http\Requests\IntramuralRequests\StoreIntramuralGameRequest;
 use App\Http\Requests\IntramuralRequests\UpdateIntramuralGameRequest;
 use App\Models\IntramuralGame;
+use App\Models\Podium;
+use App\Models\Event;
+
 
 class IntramuralGameController extends Controller
 {
@@ -90,4 +93,80 @@ class IntramuralGameController extends Controller
         }
         
     }
+
+    public function overall_tally(Request $request, string $id)
+    {
+        // Load intramural with teams and all podiums + related event and team data
+        $intramural = IntramuralGame::with(['teams', 'podiums.event', 'podiums.gold', 'podiums.silver', 'podiums.bronze'])->findOrFail($id);
+
+        $tally = [];
+
+        // Step 1: Initialize all teams with zero medals
+        foreach ($intramural->teams as $team) {
+            $tally[$team->id] = [
+                'team_id' => $team->id,
+                'team_name' => $team->name,
+                'team_logo' => $team->team_logo_path ? asset('storage/' . $team->team_logo_path) : null,
+                'gold' => 0,
+                'silver' => 0,
+                'bronze' => 0,
+            ];
+        }
+
+        // Step 2: Loop through podiums and count medals based on event medal allocations
+        foreach ($intramural->podiums as $podium) {
+            $event = $podium->event;
+            if (!$event) continue;
+
+            $goldCount = $event->gold ?? 0;
+            $silverCount = $event->silver ?? 0;
+            $bronzeCount = $event->bronze ?? 0;
+
+            $addMedal = function ($team, $medal, $count = 1) use (&$tally) {
+                if (!$team) return;
+
+                if (!isset($tally[$team->id])) {
+                    $tally[$team->id] = [
+                        'team_id' => $team->id,
+                        'team_name' => $team->name,
+                        'team_logo' => $team->team_logo_path ? asset('storage/' . $team->team_logo_path) : null,
+                        'gold' => 0,
+                        'silver' => 0,
+                        'bronze' => 0,
+                    ];
+                }
+
+                $tally[$team->id][$medal] += $count;
+            };
+
+            $addMedal($podium->gold, 'gold', $goldCount);
+            $addMedal($podium->silver, 'silver', $silverCount);
+            $addMedal($podium->bronze, 'bronze', $bronzeCount);
+        }
+
+        // Step 3: Sort the tally by gold, silver, then bronze
+        $sorted = collect($tally)->sort(function ($a, $b) {
+            return [$b['gold'], $b['silver'], $b['bronze']] <=> [$a['gold'], $a['silver'], $a['bronze']];
+        })->values();
+
+        return response()->json([
+            'data' => $sorted
+        ], 200);
+    }
+
+    public function events(Request $request, string $intrams_id)
+    {
+        $events = Event::where('intrams_id', $intrams_id)
+            ->get(['id', 'name', 'category'])   // get only the fields we need
+            ->map(function ($event) {
+                return [
+                    'id'   => $event->id,
+                    'name' => $event->category . ' ' . $event->name,
+                ];
+            });
+
+        return response()->json($events, 200);
+    }
+
+
 }
