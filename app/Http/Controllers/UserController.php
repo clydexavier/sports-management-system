@@ -85,6 +85,19 @@ class UserController extends Controller
     public function show(Request $request)
     {   
         $user = $request->user(); // Same as Auth::user()
+       // Check if the user role is 'user' and log them out if it is
+       if($user->role === 'user'){
+            Auth::logout();
+            
+            // For Laravel Sanctum, we should revoke any existing tokens
+            if (method_exists($user, 'tokens')) {
+                $user->tokens()->delete();
+            }
+            
+            return response()->json([
+                'message' => 'Please wait for the administrator to assign your appropriate role. You will be notified once your account is approved.'
+            ], 403);
+        }
         return response()->json($user);
     }
 

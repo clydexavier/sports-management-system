@@ -22,20 +22,24 @@ class AuthController extends Controller
         
         $user = Auth::user();
         
-        // Check if the user role is 'user' and log them out if it is
+        // Check if the user role is 'user' - this block updated for consistency
         if($user->role === 'user'){
+            // First logout the user
             Auth::logout();
             
-            // For Laravel Sanctum, we should revoke any existing tokens
+            // For Laravel Sanctum, revoke any existing tokens
             if (method_exists($user, 'tokens')) {
                 $user->tokens()->delete();
             }
             
+            // Return the message with proper status code
             return response()->json([
+                'pending' => true, // Added this flag for consistency with Google flow
                 'message' => 'Please wait for the administrator to assign your appropriate role. You will be notified once your account is approved.'
             ], 403);
         }
         
+        // Only create token if user is not a basic 'user' role
         $token = $user->createToken('main')->plainTextToken;
     
         return response()->json([
@@ -55,14 +59,15 @@ class AuthController extends Controller
             'role' => 'user', // Setting default role to 'user' for new registrations
         ]);
         
-        // No token for users with 'user' role
+        // No token for users with 'user' role - updated to match Google flow
         if($user->role === 'user'){
             return response()->json([
+                'pending' => true, // Added this flag for consistency with Google flow
                 'message' => 'Your account has been created successfully. Please wait for administrator approval before logging in.'
             ], 201);
         }
         
-        // Only create and return token for users with other roles (e.g., admin, editor, etc.)
+        // Only create and return token for users with other roles
         $token = $user->createToken('main')->plainTextToken;
     
         return response()->json([
