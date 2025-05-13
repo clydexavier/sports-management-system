@@ -56,13 +56,13 @@ class AuthController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => bcrypt($data['password']),
-            'role' => 'user', // Setting default role to 'user' for new registrations
+            'role' => 'user',
         ]);
         
         // No token for users with 'user' role - updated to match Google flow
         if($user->role === 'user'){
             return response()->json([
-                'pending' => true, // Added this flag for consistency with Google flow
+                'pending' => true, 
                 'message' => 'Your account has been created successfully. Please wait for administrator approval before logging in.'
             ], 201);
         }
