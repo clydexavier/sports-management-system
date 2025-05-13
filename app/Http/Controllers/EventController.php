@@ -51,14 +51,7 @@ class EventController extends Controller
         $events = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
 
-        // Transform event names
-        $transformed = $events->getCollection()->transform(function ($event) {
-            $event->name = $event->category . ' ' . $event->name;
-            return $event;
-        });
-
-        // Replace the collection with the transformed one
-        $events->setCollection($transformed);
+       
 
         return response()->json([
             'data' => $events->items(),
