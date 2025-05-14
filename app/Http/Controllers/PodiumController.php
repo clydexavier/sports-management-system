@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Podium;
 use App\Models\OverallTeam;
 use App\Models\Event;
+use App\Models\IntramuralGame;
+
 
 
 class PodiumController extends Controller
@@ -25,7 +27,7 @@ class PodiumController extends Controller
 
         $type = $request->query('type');
         $search = $request->query('search');
-
+        $intrams = IntramuralGame::findOrFail($intrams_id);
         $query = Podium::with([
             'event',
             'gold',
@@ -78,7 +80,8 @@ class PodiumController extends Controller
                 'per_page' => $podiums->perPage(),
                 'total' => $podiums->total(),
                 'last_page' => $podiums->lastPage(),
-            ]
+            ],
+            'intrams_name' => $intrams->name, 
         ], 200);
     }
 

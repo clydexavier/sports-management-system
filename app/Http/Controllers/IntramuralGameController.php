@@ -122,7 +122,7 @@ class IntramuralGameController extends Controller
             if (!$event) continue;
             
             // Skip this event if it doesn't match the type filter
-            if ($type !== 'overall' && strtolower($event->category) !== strtolower($type)) {
+            if ($type !== 'overall' && strtolower($event->type) !== strtolower($type)) {
                 continue;
             }
 

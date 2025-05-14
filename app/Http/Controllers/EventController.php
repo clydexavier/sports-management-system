@@ -35,13 +35,13 @@ class EventController extends Controller
     {
         $perPage = 12;
 
-        $status = $request->query('status');
+        $type = $request->query('type');
         $search = $request->query('search');
 
         $query = Event::where('intrams_id', $intrams_id);
 
-        if ($status && $status !== 'all') {
-            $query->where('status', $status);
+        if ($type && $type !== 'all') {
+            $query->where('type', $type);
         }
 
         if ($search) {
