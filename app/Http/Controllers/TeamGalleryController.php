@@ -38,6 +38,7 @@ class TeamGalleryController extends Controller
                                     return [
                                         'team_id' => $team->id,
                                         'team_name' => $team->name,
+                                        'team_logo_url' => $team->team_logo_path ? url(Storage::url($team->team_logo_path)) : null,
                                         'galleries' => $teamGalleries->map(function($gallery) {
                                             return [
                                                 'id' => $gallery->id,
