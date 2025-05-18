@@ -77,22 +77,24 @@ class ChallongeService
     public function addTournamentParticipants($event_id, $payload = [])
     {
         $url = "{$this->baseUrl}/tournaments/{$event_id}/participants/bulk_add.json";
-
+        
+        // Use JSON format as shown in the example
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
+            'Accept' => 'application/json'
         ])->post($url, $payload);
 
         // Safely handle the response
         if ($response->successful()) {
-            return $response->json(); // returns associative array
+            return $response->json(); 
         }
 
         \Log::error('[ChallongeService] Failed to add participants.', [
             'status' => $response->status(),
-            'body' => $response->body()
+            'body' => $response->body(),
+            'sent_payload' => $payload
         ]);
 
-        // Return an empty array or a descriptive error object
         return [];
     }
 

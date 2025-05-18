@@ -85,16 +85,19 @@ class ScheduleController extends Controller
                 $score_team2 = $totalTeam2;
             }
             
+            // Get participant names and IDs, ensuring we don't have null values
+            $team1_id = $match['player1_id'] ?? 0; // Use 0 as default instead of null
+            $team2_id = $match['player2_id'] ?? 0; // Use 0 as default instead of null
             // Get participant names
-            $team1_name = $participantMap[$match['player1_id']] ?? null;
-            $team2_name = $participantMap[$match['player2_id']] ?? null;
+            $team1_name = $participantMap[$team1_id] ?? 'TBD';
+            $team2_name = $participantMap[$team2_id] ?? 'TBD';
             
             // Update or create local record
             if (isset($localSchedules[$matchId])) {
                 // Update existing schedule
                 $localSchedules[$matchId]->update([
-                    'team_1' => $match['player1_id'] ?? null,
-                    'team_2' => $match['player2_id'] ?? null,
+                    'team_1' => $match['player1_id'] ?? 0,
+                    'team_2' => $match['player2_id'] ?? 0,
                     'team1_name' => $team1_name,
                     'team2_name' => $team2_name,
                     'scores_csv' => $scoresCsv,
@@ -110,8 +113,8 @@ class ScheduleController extends Controller
                     'challonge_event_id' => $event->challonge_event_id,
                     'event_id' => $event_id,
                     'intrams_id' => $intrams_id,
-                    'team_1' => $match['player1_id'] ?? null,
-                    'team_2' => $match['player2_id'] ?? null,
+                    'team_1' => $match['player1_id'] ?? 0,
+                    'team_2' => $match['player2_id'] ?? 0,
                     'team1_name' => $team1_name,
                     'team2_name' => $team2_name,
                     'scores_csv' => $scoresCsv,

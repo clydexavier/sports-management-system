@@ -121,6 +121,7 @@ class EventController extends Controller
         $challongeTournament = $this->challonge->getTournament($event->challonge_event_id, $params);
         return response()->json($challongeTournament['tournament']['name'], 200);
     }
+    
 
     public function bracket(Request $request, string $intrams_id, string $event_id)
     {
@@ -198,25 +199,46 @@ class EventController extends Controller
      */
     public function start(StartEventRequest $request)
     {
-        $validated = $request->validated();
-       
-        $event = Event::where('id', $validated['id'])
-            ->where('intrams_id', $validated['intrams_id'])
-            ->firstOrFail();
-       
-        $participantsInput = $request->input('participants', []);
-       
-        if (empty($participantsInput)) {
-            return response()->json(['message' => 'Participants data is required.'], 422);
-        }
+        \Log::info('Incoming data:', $request->all());
 
-        // Wrap in expected Challonge format
-        $payload = [
-            'api_key' => env('CHALLONGE_API_KEY'),
-            'participants' => $participantsInput,
+    $validated = $request->validated();
+   
+    $event = Event::where('id', $validated['id'])
+        ->where('intrams_id', $validated['intrams_id'])
+        ->firstOrFail();
+   
+    $participantsInput = $request->input('participants', []);
+   
+    if (empty($participantsInput)) {
+        return response()->json(['message' => 'Participants data is required.'], 422);
+    }
+
+    // Format participants according to correct Challonge API format
+    $formattedParticipants = [];
+    
+    foreach ($participantsInput as $participantData) {
+        // Extract the inner participant data
+        $participant = isset($participantData['participant']) 
+            ? $participantData['participant'] 
+            : $participantData;
+        
+        // Add to array with ONLY the required attributes directly
+        $formattedParticipants[] = [
+            'name' => $participant['name'],
+            'seed' => $participant['seed']
         ];
-        // Send to Challonge
-        $addResponse = $this->challonge->addTournamentParticipants($event->challonge_event_id, $payload);
+    }
+    
+    // Create payload with correctly structured participants array
+    $payload = [
+        'api_key' => env('CHALLONGE_API_KEY'),
+        'participants' => $formattedParticipants
+    ];
+    
+    \Log::info('Correctly formatted payload:', $payload);
+    
+    // Update your addTournamentParticipants method to use JSON
+    $addResponse = $this->challonge->addTournamentParticipants($event->challonge_event_id, $payload);
         
         // Check if participants were added successfully
         if (empty($addResponse) || !isset($addResponse[0]['participant'])) {
