@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Schedule;
+use App\Models\Event;
+use App\Services\ChallongeService;
+
+
 
 
 use App\Http\Requests\ScheduleRequests\StoreScheduleRequest;
@@ -15,11 +19,119 @@ use App\Http\Requests\ScheduleRequests\DestroyScheduleRequest;
 
 class ScheduleController extends Controller
 {
-    //
-    public function index(Request $request, $intrams_id, $event_id) 
+    protected $challonge;
+
+    public function __construct(ChallongeService $challonge)
     {
-        $scheds = Schedule::where('intrams_id', $intrams_id)->where('event_id', $event_id)->get();
-        return response()->json($scheds, 200);
+        $this->challonge = $challonge;
+    }
+    //
+    public function index(Request $request, $intrams_id, $event_id)
+    {
+        // First, get the event to obtain the Challonge event ID
+        $event = Event::where('id', $event_id)
+            ->where('intrams_id', $intrams_id)
+            ->firstOrFail();
+        
+        // Get all local schedules
+        $localSchedules = Schedule::where('intrams_id', $intrams_id)
+            ->where('event_id', $event_id)
+            ->get()
+            ->keyBy('match_id'); // Index by match_id for easy lookup
+        
+        // Fetch latest data from Challonge
+        $challongeMatches = $this->challonge->getMatches($event->challonge_event_id);
+        
+        // Fetch participants for mapping IDs to names
+        $participants = $this->challonge->getTournamentParticipants($event->challonge_event_id);
+        $participantMap = collect($participants)->mapWithKeys(function ($item) {
+            $participant = $item['participant'] ?? $item;
+            return [$participant['id'] => $participant['name']];
+        });
+        
+        // Process each match from Challonge
+        foreach ($challongeMatches as $challongeMatchData) {
+            $match = $challongeMatchData['match'] ?? $challongeMatchData;
+            $matchId = $match['id'];
+            
+            // Parse scores if present
+            $scoresCsv = $match['scores_csv'] ?? null;
+            $winner_id = $match['winner_id'] ?? null;
+            $is_completed = !empty($winner_id);
+            
+            // Calculate simple scores if scores_csv is present
+            $score_team1 = null;
+            $score_team2 = null;
+            
+            if ($scoresCsv) {
+                // For simple scoring, just count the overall score
+                // For set-based scoring, count sets won by each team
+                $totalTeam1 = 0;
+                $totalTeam2 = 0;
+                
+                $sets = explode(',', $scoresCsv);
+                foreach ($sets as $set) {
+                    $setScores = explode('-', $set);
+                    if (count($setScores) === 2) {
+                        if ((int)$setScores[0] > (int)$setScores[1]) {
+                            $totalTeam1++;
+                        } else if ((int)$setScores[1] > (int)$setScores[0]) {
+                            $totalTeam2++;
+                        }
+                    }
+                }
+                
+                $score_team1 = $totalTeam1;
+                $score_team2 = $totalTeam2;
+            }
+            
+            // Get participant names
+            $team1_name = $participantMap[$match['player1_id']] ?? null;
+            $team2_name = $participantMap[$match['player2_id']] ?? null;
+            
+            // Update or create local record
+            if (isset($localSchedules[$matchId])) {
+                // Update existing schedule
+                $localSchedules[$matchId]->update([
+                    'team_1' => $match['player1_id'] ?? null,
+                    'team_2' => $match['player2_id'] ?? null,
+                    'team1_name' => $team1_name,
+                    'team2_name' => $team2_name,
+                    'scores_csv' => $scoresCsv,
+                    'score_team1' => $score_team1,
+                    'score_team2' => $score_team2,
+                    'winner_id' => $winner_id,
+                    'is_completed' => $is_completed,
+                ]);
+            } else {
+                // Create new schedule if not exists
+                Schedule::create([
+                    'match_id' => $matchId,
+                    'challonge_event_id' => $event->challonge_event_id,
+                    'event_id' => $event_id,
+                    'intrams_id' => $intrams_id,
+                    'team_1' => $match['player1_id'] ?? null,
+                    'team_2' => $match['player2_id'] ?? null,
+                    'team1_name' => $team1_name,
+                    'team2_name' => $team2_name,
+                    'scores_csv' => $scoresCsv,
+                    'score_team1' => $score_team1,
+                    'score_team2' => $score_team2,
+                    'winner_id' => $winner_id,
+                    'is_completed' => $is_completed,
+                    'date' => null,
+                    'time' => null,
+                    'venue' => null,
+                ]);
+            }
+        }
+        
+        // Get updated schedules
+        $updatedSchedules = Schedule::where('intrams_id', $intrams_id)
+            ->where('event_id', $event_id)
+            ->get();
+        
+        return response()->json($updatedSchedules, 200);
     }
     public function store(StoreScheduleRequest $request)
     {

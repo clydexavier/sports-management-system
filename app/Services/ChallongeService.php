@@ -96,4 +96,18 @@ class ChallongeService
         return [];
     }
 
+    public function updateMatchScore($event_id, $match_id, $params)
+    {
+        return $this->request('put', "tournaments/{$event_id}/matches/{$match_id}", ['match' => $params]);
+    }
+
+    public function getParticipantStandings($event_id)
+    {
+        $params = [
+            'include_matches' => true
+        ];
+        
+        return $this->request('get', "tournaments/{$event_id}/participants", $params);
+    }
+
 }

@@ -84,7 +84,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('team_names', [OverallTeamController::class, 'index_team_name']);
 
                 //
-               // Route::get('events', [IntramuralGameController::class, 'events']);
+                Route::get('events', [IntramuralGameController::class, 'events']);
                 // Venues
                 Route::prefix('venues')->group(function () {
                     Route::get('/', [VenueController::class, 'index']);
@@ -145,6 +145,9 @@ Route::prefix('v1')->group(function () {
                         //bracket, matches, and schedule of events
                         Route::get('bracket', [EventController::class, 'bracket']);
                         Route::get('matches', [GameController::class, 'index']);
+
+                        Route::post('matches/{match_id}/score', [EventController::class, 'submitScore']);
+                        Route::get('standings', [EventController::class, 'getStandings']);
 
                         Route::get('schedule', [ScheduleController::class, 'index']);
                         Route::post('schedule/create', [ScheduleController::class, 'store']);

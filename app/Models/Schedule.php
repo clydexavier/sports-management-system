@@ -20,7 +20,12 @@ class Schedule extends Model
         'challonge_event_id',
         'match_id',
         'date',
-        'time'
+        'time',
+        'score_team1',
+        'score_team2',
+        'scores_csv',
+        'winner_id',
+        'is_completed',
     ];
 
     public function event()

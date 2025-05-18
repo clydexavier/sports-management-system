@@ -68,7 +68,11 @@ class EventController extends Controller
     {
         $event = Event::where('id', $id)->where('intrams_id', $intrams_id)->firstOrFail();
         
-        return response()->json($event->status);
+        $data = [
+            'status' => $event->status,
+            'tournament_type' => $event->tournament_type, 
+        ];
+        return response()->json($data, 200);
 
     }
 
@@ -154,8 +158,9 @@ class EventController extends Controller
             $event->fill($validated);
 
             // Prepare Challonge update
+            
             $challongeParams = [
-                'name' => $event->category . " " . $event->name,
+                'name' => IntramuralGame::find($validated['intrams_id'])->name ." " .$validated['category']. " " .$validated['name'],
                 'tournament_type' => $event->tournament_type
             ];
 
@@ -276,6 +281,140 @@ class EventController extends Controller
 
         return response()->json($startResponse);
     }
+
+    /**
+     * Submit scores for a match
+     */
+    public function submitScore(Request $request, string $intrams_id, string $event_id, string $match_id)
+    {
+        \Log::info('Incoming data:', $request->all());
+
+        // Validate request - making scores optional
+        $validated = $request->validate([
+            'score_team1' => 'nullable|integer|min:0',
+            'score_team2' => 'nullable|integer|min:0',
+            'scores_csv' => 'nullable|string', // For set-based scoring
+            'winner_id' => 'required|string'
+        ]);
+        
+        // Get event to verify it exists
+        $event = Event::where('id', $event_id)
+            ->where('intrams_id', $intrams_id)
+            ->firstOrFail();
+        
+        // Find the schedule/match
+        $schedule = Schedule::where('match_id', $match_id)
+            ->where('event_id', $event_id)
+            ->firstOrFail();
+        
+        // Update in our database
+        $scheduleData = [
+            'winner_id' => $validated['winner_id'],
+            'is_completed' => true,
+            'score_team1' => 0,
+            'score_team2' => 0,
+        ];
+
+        
+        // Only include scores if provided
+        if (isset($validated['score_team1'])) {
+            $scheduleData['score_team1'] = $validated['score_team1'];
+        }
+        
+        if (isset($validated['score_team2'])) {
+            $scheduleData['score_team2'] = $validated['score_team2'];
+        }
+        
+        if (isset($validated['scores_csv'])) {
+            $scheduleData['scores_csv'] = $validated['scores_csv'];
+        }
+        // Prepare data for Challonge
+        $challongeParams = [
+            'winner_id' => $validated['winner_id']
+        ];
+        
+        // Add scores_csv if available (for set-based games)
+        if (isset($validated['scores_csv']) && !empty($validated['scores_csv'])) {
+            $challongeParams['scores_csv'] = $validated['scores_csv'];
+        } 
+        // If no set scores but regular scores are available, format them as scores_csv
+        elseif (isset($validated['score_team1']) && isset($validated['score_team2'])) {
+            $challongeParams['scores_csv'] = $validated['score_team1'] . '-' . $validated['score_team2'];
+        }
+        
+        // Update in Challonge
+        $response = $this->challonge->updateMatchScore($event->challonge_event_id, $match_id, $challongeParams);
+        
+        if (isset($response['match'])) {
+            $schedule->update($scheduleData);
+            return response()->json([
+                'message' => 'Match result updated successfully',
+                'schedule' => $schedule,
+                'challonge_response' => $response
+            ], 200);
+        }
+        return response()->json($response);
+
+        //return response()->json(['message' => 'Failed to submit match result. Please try again.'], 500);
+        
+    }
+
+
+    public function getStandings(string $intrams_id, string $event_id)
+    {
+        $event = Event::where('id', $event_id)
+            ->where('intrams_id', $intrams_id)
+            ->firstOrFail();
+        
+        // Get standings from Challonge
+        $response = $this->challonge->getParticipantStandings($event->challonge_event_id);
+        
+        // Process the response to get a clean standings array
+        $standings = collect($response)->map(function($item) {
+            $participant = $item['participant'] ?? $item;
+            
+            // Create base participant data
+            $result = [
+                'id' => $participant['id'],
+                'name' => $participant['name'],
+                'seed' => $participant['seed'],
+                'final_rank' => $participant['final_rank'] ?? null,
+                'wins' => $participant['wins'] ?? 0,
+                'losses' => $participant['losses'] ?? 0,
+            ];
+            
+            // Add scoring data if available
+            if (isset($participant['scores_for'])) {
+                $result['scores_for'] = $participant['scores_for'];
+            }
+            
+            if (isset($participant['scores_against'])) {
+                $result['scores_against'] = $participant['scores_against'];
+            }
+            
+            // Add match history if available
+            if (isset($participant['matches'])) {
+                $result['matches'] = collect($participant['matches'])->map(function($match) {
+                    return [
+                        'id' => $match['id'],
+                        'round' => $match['round'],
+                        'opponent_id' => $match['opponent_id'],
+                        'winner_id' => $match['winner_id'],
+                        'scores_csv' => $match['scores_csv'] ?? null
+                    ];
+                })->toArray();
+            }
+            
+            return $result;
+        })->sortBy(function($participant) {
+            // Sort by final_rank if available, otherwise by seed
+            return $participant['final_rank'] ?? $participant['seed'];
+        })->values();
+        
+        return response()->json($standings, 200);
+    }
+
+
     /**
      * Finalize an event/tournament.
      */
