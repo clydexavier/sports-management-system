@@ -121,7 +121,7 @@ class EventController extends Controller
             $validated['name'] = $parent->name . " ". $validated['name'];
         }
         //hack
-        $validated['challonge_event_id'] = null;
+        //$validated['challonge_event_id'] = null;
         if (!isset($validated['tournament_type'])) {
             $validated['tournament_type'] = "umbrella";
         }
@@ -137,6 +137,10 @@ class EventController extends Controller
                 'show_rounds' => true
             ];
             $challongeResponse = $this->challonge->createTournament($challongeParams);
+            
+            // Create event in our database
+                $event = Event::create($validated);
+            
 
             // Extract the Challonge tournament ID
             $challongeEventId = $challongeResponse['tournament']['id'] ?? null;
@@ -146,10 +150,14 @@ class EventController extends Controller
             // Add Challonge ID to the event data
             $validated['challonge_event_id'] = $challongeEventId;
         }
-
-        // Create event in our database
+        if($validated['is_umbrella']) {
+            // Create event in our database
         $event = Event::create($validated);
 
+        }
+
+        
+        
         return response()->json($event, 201);
     }
 
@@ -178,12 +186,13 @@ class EventController extends Controller
         $event = Event::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
 
         // Fetch from Challonge
-        $params = [
+        /*$params = [
             'include_participants' => $request->query('include_participants', false),
             'include_matches' => $request->query('include_matches', false)
-        ];
-        $challongeTournament = $this->challonge->getTournament($event->challonge_event_id, $params);
-        return response()->json($challongeTournament['tournament']['name'], 200);
+        ];*/
+        $complete_name = $event->category ." " . $event->name; 
+       // $challongeTournament = $this->challonge->getTournament($event->challonge_event_id, $params);
+        return response()->json($complete_name, 200);
     }
     
 
@@ -212,6 +221,8 @@ class EventController extends Controller
      */
     public function update(UpdateEventRequest $request)
     {
+        \Log::info('Incoming data:', $request->all());
+
         $validated = $request->validated();
 
         return DB::transaction(function () use ($validated) {
@@ -223,9 +234,9 @@ class EventController extends Controller
             $event->fill($validated);
 
             // Prepare Challonge update
-            
+            $uniqueId = uniqid();
             $challongeParams = [
-                'name' => IntramuralGame::find($validated['intrams_id'])->name ." " .$validated['category']. " " .$validated['name'],
+                'name' => IntramuralGame::find($event->intrams_id)->name ." " .$event->category. " " .$event->name . " ".$uniqueId . " ",
                 'tournament_type' => $event->tournament_type
             ];
 
