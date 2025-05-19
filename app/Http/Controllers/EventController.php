@@ -31,30 +31,66 @@ class EventController extends Controller
     /**
      * Retrieve all events linked to an intramural.
      */
+    // Inside the index method, update the query to handle parent-child relationships
     public function index(string $intrams_id, Request $request)
     {
         $perPage = 12;
 
         $type = $request->query('type');
         $search = $request->query('search');
+        $parentId = $request->query('parent_id'); // New parameter for filtering by parent
+        $showUmbrella = $request->query('show_umbrella', true); // Parameter to control umbrella events display
+        $showSubEvents = $request->query('show_subevents', false); // Parameter to control sub-events display
 
         $query = Event::where('intrams_id', $intrams_id);
 
+        // Filter by type if specified
         if ($type && $type !== 'all') {
             $query->where('type', $type);
         }
 
+        // Filter by search term if specified
         if ($search) {
             $query->where('name', 'like', '%' . $search . '%');
         }
 
+        // Apply hierarchy filters
+        if ($parentId) {
+            // If parent_id is provided, show only sub-events of that parent
+            $query->where('parent_id', $parentId);
+        } else {
+            // Default view logic
+            if (!$showSubEvents) {
+                // Don't show sub-events in the main view unless specifically requested
+                $query->whereNull('parent_id');
+            }
+            
+            if (!$showUmbrella) {
+                // Don't show umbrella events if not requested
+                $query->where('is_umbrella', false);
+            }
+        }
+
         $events = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+        // Get event name
+        $intrams = IntramuralGame::findOrFail($intrams_id);
+        $event_name = $intrams->name;
 
-       
+        // Get umbrella events for parent selection
+        // Get umbrella events for parent selection
+        $umbrellaEvents = [];
+        if ($showUmbrella || $parentId || $showSubEvents) {
+            $umbrellaEvents = Event::where('intrams_id', $intrams_id)
+                ->where('is_umbrella', true)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+        }
 
         return response()->json([
             'data' => $events->items(),
+            'umbrella_events' => $umbrellaEvents,
+            'event_name' => $event_name,
             'meta' => [
                 'current_page' => $events->currentPage(),
                 'per_page' => $events->perPage(),
@@ -64,6 +100,61 @@ class EventController extends Controller
         ], 200);
     }
 
+    // Modify the store method to handle umbrella events and sub-events
+    public function store(StoreEventRequest $request)
+    {
+        \Log::info('Incoming data:', $request->all());
+
+        $validated = $request->validated();
+        $validated['status'] = "pending";
+        $validated['is_umbrella'] = $request->input('is_umbrella', false);
+        
+        // If this is a sub-event, set parent_id
+        if ($request->input('parent_id')) {
+            $validated['parent_id'] = $request->input('parent_id');
+            
+            // Verify parent exists
+            $parent = Event::findOrFail($validated['parent_id']);
+            
+            // Sub-events inherit some properties from parent
+            $validated['type'] = $parent->type;
+            $validated['name'] = $parent->name . " ". $validated['name'];
+        }
+        //hack
+        $validated['challonge_event_id'] = null;
+        if (!isset($validated['tournament_type'])) {
+            $validated['tournament_type'] = "umbrella";
+        }
+        // Only create Challonge tournament for non-umbrella events or standalone events
+        if (!$validated['is_umbrella']) {
+            // Create tournament in Challonge
+            $uniqueId = uniqid();
+
+            $challongeParams = [
+                'name' => IntramuralGame::find($validated['intrams_id'])->name ." " .$validated['category']. " " .$validated['name'] . " ".$uniqueId,
+                'tournament_type' => $validated['tournament_type'],
+                'hold_third_place_match' => $validated['hold_third_place_match'] ?? true,
+                'show_rounds' => true
+            ];
+            $challongeResponse = $this->challonge->createTournament($challongeParams);
+
+            // Extract the Challonge tournament ID
+            $challongeEventId = $challongeResponse['tournament']['id'] ?? null;
+
+            $this->challonge->getTournament($challongeEventId);
+
+            // Add Challonge ID to the event data
+            $validated['challonge_event_id'] = $challongeEventId;
+        }
+
+        // Create event in our database
+        $event = Event::create($validated);
+
+        return response()->json($event, 201);
+    }
+
+    // Similarly, update other methods (update, destroy, etc.) to handle the hierarchy
+    
     public function event_status(Request $request, string $intrams_id, string $id) 
     {
         $event = Event::where('id', $id)->where('intrams_id', $intrams_id)->firstOrFail();
@@ -76,34 +167,7 @@ class EventController extends Controller
 
     }
 
-    /**
-     * Create an event and sync it with Challonge.
-     */
-    public function store(StoreEventRequest $request)
-    {
-        $validated = $request->validated();
-        $validated['status'] = "pending";
-
-        // Create tournament in Challonge
-        $challongeParams = [
-            'name' => IntramuralGame::find($validated['intrams_id'])->name ." " .$validated['category']. " " .$validated['name'],
-            'tournament_type' => $validated['tournament_type'],
-            'hold_third_place_match' => $validated['hold_third_place_match'] ?? true,
-            'show_rounds' => true
-        ];
-        $challongeResponse = $this->challonge->createTournament($challongeParams);
-
-        // Extract the Challonge tournament ID
-        $challongeEventId = $challongeResponse['tournament']['id'] ?? null;
-
-        $this->challonge->getTournament($challongeEventId);
-
-        // Create event in our database with the Challonge event ID
-        $validated['challonge_event_id'] = $challongeEventId;
-        $event = Event::create($validated);
-
-        return response()->json($event, 201);
-    }
+    
     /**
      * Show event details (including optional Challonge tournament data).
      */

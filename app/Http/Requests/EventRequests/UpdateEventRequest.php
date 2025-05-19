@@ -21,6 +21,8 @@ class UpdateEventRequest extends FormRequest
         $this->merge([
             'intrams_id' => $this->route('intrams_id'),
             'id' => $this->route('id'),
+            'is_umbrella' => isset($this->is_umbrella) ? filter_var($this->is_umbrella, FILTER_VALIDATE_BOOLEAN) : null,
+            'is_team_based' => isset($this->is_team_based) ? filter_var($this->is_team_based, FILTER_VALIDATE_BOOLEAN) : null,
         ]);
     }
 
@@ -49,6 +51,21 @@ class UpdateEventRequest extends FormRequest
                     return $query->where('intrams_id', $this->intrams_id);
                 }),
             ],
+            'is_umbrella' => ['sometimes', 'boolean'],
+            'parent_id' => [
+                'sometimes', 
+                'nullable',
+                'exists:events,id',
+                function ($attribute, $value, $fail) {
+                    if ($value && $this->umbrella) {
+                        $fail('An umbrella event cannot have a parent event.');
+                    }
+                }
+            ],
+            'is_team_based' => ['sometimes', 'boolean'],
+            'venue' => ['sometimes', 'nullable', 'string'],
+            'has_independent_medaling' => ['sometimes', 'nullable','boolean'],
+
         ];
     }
 }

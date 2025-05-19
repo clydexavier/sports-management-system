@@ -25,7 +25,7 @@ return new class extends Migration
     {
         //
         Schema::table('players', function (Blueprint $table) {
-            $table->string('birthdate')->nullable()->change();
+            $table->string('birthdate')->nullable(false)->change();
         });
     }
 };
