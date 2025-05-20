@@ -62,8 +62,8 @@ class User extends Authenticatable
     }
 
     public function team()
-{
-    return $this->belongsTo(OverallTeam::class, 'team_id');
-}
+    {
+        return $this->belongsTo(OverallTeam::class, 'team_id');
+    }
 
 }

@@ -26,6 +26,7 @@ class Schedule extends Model
         'scores_csv',
         'winner_id',
         'is_completed',
+        'suggested_play_order'
     ];
 
     public function event()

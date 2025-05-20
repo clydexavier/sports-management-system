@@ -45,6 +45,7 @@ class UpdateScheduleRequest extends FormRequest
             'date' => ['sometimes', 'nullable','date'],
             'time' => ['sometimes', 'nullable'],
             'venue' => ['sometimes','nullable' ,'string', 'max:50'],
+            'suggested_play_order' => ['sometimes'],
 
         ];
     }

@@ -106,6 +106,9 @@ Route::prefix('v1')->group(function () {
                 
                 //Podium routes
                 Route::get('podiums', [PodiumController::class, 'index']);
+                Route::post('podiums_pdf', [PodiumController::class, 'generatePodiumPDF']);
+                Route::delete('podiums_pdf', [PodiumController::class, 'deletePodiumPDF']);
+
 
                 // Events //fucntions as tournaments in challonge
                 Route::prefix('events')->group(function () {
@@ -172,6 +175,8 @@ Route::prefix('v1')->group(function () {
                        Route::get('podium', [PodiumController::class, 'show']);
                        Route::patch('podium/update', [PodiumController::class, 'update']);
                        Route::delete('podium', [PodiumController::class, 'destroy']);
+                       Route::post('podium_pdf', [PodiumController::class, 'generateSingleEventPodiumPDF']);
+                       Route::delete('podium_pdf', [PodiumController::class, 'deleteSingleEventPodiumPDF']);
                     });
 
                 });

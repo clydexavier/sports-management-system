@@ -49,4 +49,9 @@ class Podium extends Model
     {
         return $this->belongsTo(OverallTeam::class, 'bronze_team_id');
     }
+
+    public function tsecretary()
+    {
+        return $this->has(User::class);
+    }
 }

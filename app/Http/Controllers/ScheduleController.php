@@ -134,6 +134,7 @@ class ScheduleController extends Controller
                 $localSchedules[$matchId]->update([
                     'team_1' => $match['player1_id'] ?? 0,
                     'team_2' => $match['player2_id'] ?? 0,
+                    'suggested_play_order' => $match['suggested_play_order'],
                     'team1_name' => $team1_name,
                     'team2_name' => $team2_name,
                     'scores_csv' => $scoresCsv,
@@ -148,6 +149,7 @@ class ScheduleController extends Controller
                     'match_id' => $matchId,
                     'challonge_event_id' => $event->challonge_event_id,
                     'event_id' => $event_id,
+                    'suggested_play_order' => $match['suggested_play_order'],
                     'intrams_id' => $intrams_id,
                     'team_1' => $match['player1_id'] ?? 0,
                     'team_2' => $match['player2_id'] ?? 0,
