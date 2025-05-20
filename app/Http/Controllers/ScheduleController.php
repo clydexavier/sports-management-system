@@ -42,6 +42,17 @@ class ScheduleController extends Controller
         // Fetch latest data from Challonge
         $challongeMatches = $this->challonge->getMatches($event->challonge_event_id);
         
+        // Create a map of match_id to suggested_play_order
+        $playOrderMap = [];
+        foreach ($challongeMatches as $challongeMatchData) {
+            $match = $challongeMatchData['match'] ?? $challongeMatchData;
+            $matchId = $match['id'];
+            // Store the suggested_play_order for this match
+            if (isset($match['suggested_play_order'])) {
+                $playOrderMap[$matchId] = (int) $match['suggested_play_order'];
+            }
+        }
+        
         // Fetch participants for mapping IDs to names
         $participants = $this->challonge->getTournamentParticipants($event->challonge_event_id);
         $participantMap = collect($participants)->mapWithKeys(function ($item) {
@@ -88,9 +99,34 @@ class ScheduleController extends Controller
             // Get participant names and IDs, ensuring we don't have null values
             $team1_id = $match['player1_id'] ?? 0; // Use 0 as default instead of null
             $team2_id = $match['player2_id'] ?? 0; // Use 0 as default instead of null
-            // Get participant names
-            $team1_name = $participantMap[$team1_id] ?? 'TBD';
-            $team2_name = $participantMap[$team2_id] ?? 'TBD';
+            
+            // Determine player1 name with W/L notation if needed
+            $team1_name = $participantMap[$team1_id] ?? null;
+            if (!$team1_name && isset($match['player1_prereq_match_id'])) {
+                $prereqOrder = $playOrderMap[$match['player1_prereq_match_id']] ?? null;
+                if ($prereqOrder) {
+                    $prefix = isset($match['player1_is_prereq_match_loser']) && $match['player1_is_prereq_match_loser'] ? 'L' : 'W';
+                    $team1_name = "{$prefix}{$prereqOrder}";
+                } else {
+                    $team1_name = 'TBD';
+                }
+            } else if (!$team1_name) {
+                $team1_name = 'TBD';
+            }
+            
+            // Determine player2 name with W/L notation if needed
+            $team2_name = $participantMap[$team2_id] ?? null;
+            if (!$team2_name && isset($match['player2_prereq_match_id'])) {
+                $prereqOrder = $playOrderMap[$match['player2_prereq_match_id']] ?? null;
+                if ($prereqOrder) {
+                    $prefix = isset($match['player2_is_prereq_match_loser']) && $match['player2_is_prereq_match_loser'] ? 'L' : 'W';
+                    $team2_name = "{$prefix}{$prereqOrder}";
+                } else {
+                    $team2_name = 'TBD';
+                }
+            } else if (!$team2_name) {
+                $team2_name = 'TBD';
+            }
             
             // Update or create local record
             if (isset($localSchedules[$matchId])) {
@@ -133,6 +169,15 @@ class ScheduleController extends Controller
         $updatedSchedules = Schedule::where('intrams_id', $intrams_id)
             ->where('event_id', $event_id)
             ->get();
+        
+        // Sort the schedules based on the play order map
+        if (!empty($playOrderMap)) {
+            $updatedSchedules = $updatedSchedules->sort(function ($a, $b) use ($playOrderMap) {
+                $orderA = $playOrderMap[$a->match_id] ?? PHP_INT_MAX; // Default to max value if not found
+                $orderB = $playOrderMap[$b->match_id] ?? PHP_INT_MAX;
+                return $orderA <=> $orderB; // PHP 7+ spaceship operator for comparison
+            })->values(); // Reindex the array after sorting
+        }
         
         return response()->json($updatedSchedules, 200);
     }
