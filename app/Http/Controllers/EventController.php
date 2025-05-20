@@ -84,7 +84,7 @@ class EventController extends Controller
             $umbrellaEvents = Event::where('intrams_id', $intrams_id)
                 ->where('is_umbrella', true)
                 ->orderBy('name')
-                ->get(['id', 'name']);
+                ->get(['id', 'name', 'has_independent_medaling']);
         }
 
         return response()->json([
