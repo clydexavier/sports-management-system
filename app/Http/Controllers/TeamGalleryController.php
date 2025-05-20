@@ -26,8 +26,40 @@ class TeamGalleryController extends Controller
             return response()->json(['message' => 'Event not found'], 404);
         }
         
-        // Get all galleries for this event, with team information
-        $galleries = Gallery::where('event_id', $event_id)
+        // Determine which event IDs to look for based on event hierarchy
+        $eventIds = [$event_id]; // Start with current event
+        
+        if ($event->parent_id) {
+            // This is a subevent - find all sibling events with same parent
+            $siblingEventIds = Event::where('parent_id', $event->parent_id)
+                ->pluck('id')
+                ->toArray();
+            
+            // Add the parent ID as well to include any galleries directly attached to parent
+            $eventIds = array_merge($siblingEventIds, [$event->parent_id]);
+            
+            \Log::info('Subevent detected - fetching galleries from all related events', [
+                'current_event' => $event_id,
+                'parent_event' => $event->parent_id,
+                'all_event_ids' => $eventIds
+            ]);
+        } 
+        else if (Event::where('parent_id', $event_id)->exists()) {
+            // This is a parent event - find all its subevents
+            $childEventIds = Event::where('parent_id', $event_id)
+                ->pluck('id')
+                ->toArray();
+            
+            $eventIds = array_merge($eventIds, $childEventIds);
+            
+            \Log::info('Parent event detected - fetching galleries from parent and all subevents', [
+                'parent_event' => $event_id,
+                'all_event_ids' => $eventIds
+            ]);
+        }
+        
+        // Get all galleries for these events, with team information
+        $galleries = Gallery::whereIn('event_id', $eventIds)
                             ->with('team')
                             ->get();
         
@@ -70,45 +102,77 @@ class TeamGalleryController extends Controller
         $validator = Validator::make($request->all(), [
             'team_id' => 'required|exists:overall_teams,id',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-
+    
         $teamId = $request->input('team_id');
-
+    
         // Get team details
         $team = OverallTeam::findOrFail($teamId);
-
+    
         // Get event details using the route parameter
         $event = Event::where('id', $event_id)
                       ->where('intrams_id', $intrams_id)
                       ->firstOrFail();
-
-        // Get players for this team in this event
+        
+        // Get parent event name if this is a subevent
+        $eventName = $event->name;
+        $parentEvent = null;
+        
+        if ($event->parent_id) {
+            // This is a subevent, fetch the parent event
+            $parentEvent = Event::find($event->parent_id);
+            if ($parentEvent) {
+                // Use parent event name instead
+                $eventName = $parentEvent->name;
+            }
+        }
+    
+        // Determine related event IDs (current event and sibling subevents)
+        $eventIds = [$event_id];
+        
+        if ($event->parent_id) {
+            // This is a subevent, get all siblings
+            $siblingEventIds = Event::where('parent_id', $event->parent_id)
+                ->pluck('id')
+                ->toArray();
+            $eventIds = $siblingEventIds;
+        } 
+        else if (Event::where('parent_id', $event_id)->exists()) {
+            // This is a parent event, get all children
+            $childEventIds = Event::where('parent_id', $event_id)
+                ->pluck('id')
+                ->toArray();
+            $eventIds = array_merge($eventIds, $childEventIds);
+        }
+    
+        // Get players for this team across all related events
         $players = Player::where('team_id', $teamId)
-            ->where('event_id', $event_id)->where('approved', true)
+            ->whereIn('event_id', $eventIds)
+            ->where('approved', true)
             ->get();
-
-        // Get coaches (you might need to add a role field to your Player model or create a separate model)
+    
+        // Get coaches across all related events
         $coach = Player::where('team_id', $teamId)
-            ->where('event_id', $event_id)
+            ->whereIn('event_id', $eventIds)
             ->where('role', 'coach')
             ->first();
-
+    
         $assistantCoach = Player::where('team_id', $teamId)
-            ->where('event_id', $event_id)
+            ->whereIn('event_id', $eventIds)
             ->where('role', 'assistant_coach')
             ->first();
-
+    
         $generalManager = Player::where('team_id', $teamId)
-            ->where('event_id', $event_id)
+            ->whereIn('event_id', $eventIds)
             ->where('role', 'general_manager')
             ->first();
-
+    
         // Prepare response data
         $formData = [
-            'event_name' => $event->name,
+            'event_name' => $eventName, // Using parent event name if this is a subevent
             'event_date' => '2024-10-22 to 2024-10-25',
             'screening_date' => Carbon::now()->format('Y-m-d'),
             'team_name' => $team->name,
@@ -129,27 +193,26 @@ class TeamGalleryController extends Controller
                 'date_of_birth' => $coach->birthdate,
                 'course_year' => $coach->course_year,
                 'contact_no' => $coach->contact,
-                'picture' => $coach->picture ? $player->picture : null,
+                'picture' => $coach->picture ? $coach->picture : null,
             ] : null,
             'assistant_coach' => $assistantCoach ? [
                 'name' => $assistantCoach->name,
                 'date_of_birth' => $assistantCoach->birthdate,
                 'course_year' => $assistantCoach->course_year,
                 'contact_no' => $assistantCoach->contact,
-                'picture' => $assistantCoach->picture ? $player->picture : null,
+                'picture' => $assistantCoach->picture ? $assistantCoach->picture : null,
             ] : null,
             'general_manager' => $generalManager ? [
                 'name' => $generalManager->name,
                 'date_of_birth' => $generalManager->birthdate,
                 'course_year' => $generalManager->course_year,
                 'contact_no' => $generalManager->contact,
-                'picture' => $generalManager->picture ? $player->picture : null,
+                'picture' => $generalManager->picture ? $generalManager->picture : null,
             ] : null,
         ];
-
+    
         return response()->json($formData);
     }
-
     /**
      * Generate a gallery for Form 2
      */
@@ -169,6 +232,17 @@ class TeamGalleryController extends Controller
         $event = Event::where('id', $event_id)
                     ->where('intrams_id', $intrams_id)
                     ->firstOrFail();
+
+        // Determine which event ID to associate the gallery with
+        // If this is a subevent, associate with parent instead
+        $galleryEventId = $event_id;
+        if ($event->parent_id) {
+            $galleryEventId = $event->parent_id;
+            \Log::info('Subevent detected - associating gallery with parent event', [
+                'subevent_id' => $event_id,
+                'parent_id' => $galleryEventId
+            ]);
+        }
 
         // Fetch data using the existing method (pass route parameters)
         $formData = $this->getForm2Data($request, $intrams_id, $event_id);
@@ -362,7 +436,7 @@ class TeamGalleryController extends Controller
         
         // Create Gallery record in the database
         $gallery = Gallery::create([
-            'event_id' => $event_id,
+            'event_id' => $galleryEventId,  // Use parent event ID if subevent
             'team_id' => $teamId,
             'file_path' => $storedFilePath
         ]);
@@ -486,15 +560,32 @@ class TeamGalleryController extends Controller
 
     public function destroy(Request $request, string $intrams_id, string $event_id, string $id) 
     {
-        
         // Verify event exists and belongs to intrams
         $event = Event::where('id', $event_id)
                      ->where('intrams_id', $intrams_id)
                      ->firstOrFail();
         
-        // Validate the gallery belongs to the specified event and team
+        // Determine related event IDs to allow deleting galleries from parent/siblings
+        $eventIds = [$event_id];
+        
+        if ($event->parent_id) {
+            // This is a subevent - include parent and siblings
+            $siblingEventIds = Event::where('parent_id', $event->parent_id)
+                ->pluck('id')
+                ->toArray();
+            $eventIds = array_merge($siblingEventIds, [$event->parent_id]);
+        } 
+        else if (Event::where('parent_id', $event_id)->exists()) {
+            // This is a parent event - include all children
+            $childEventIds = Event::where('parent_id', $event_id)
+                ->pluck('id')
+                ->toArray();
+            $eventIds = array_merge($eventIds, $childEventIds);
+        }
+        
+        // Validate the gallery belongs to any of the related events
         $gallery = Gallery::where('id', $id)
-            ->where('event_id', $event_id)
+            ->whereIn('event_id', $eventIds)
             ->firstOrFail();
 
         // Delete the file using Storage facade

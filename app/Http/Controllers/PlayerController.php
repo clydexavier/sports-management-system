@@ -158,7 +158,6 @@ class PlayerController extends Controller
         \Log::info('Validated data:', $validated);
 
         $player = Player::where('id', $validated['id'])
-                        ->where('event_id', $validated['event_id'])
                         ->firstOrFail();
 
         $remove_med_cert = $request->input('remove_medical_certificate', false);
