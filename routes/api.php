@@ -159,6 +159,9 @@ Route::prefix('v1')->group(function () {
                         Route::patch('schedule/{id}/edit', [ScheduleController::class, 'update']);
                         Route::delete('schedule/{id}', [ScheduleController::class, 'destroy']);
 
+                        Route::post('schedule_pdf', [ScheduleController::class, 'generateSchedulePDF']);
+                        Route::delete('schedule_pdf', [ScheduleController::class, 'deleteSchedulePDF']);
+
 
 
                         //participants route
