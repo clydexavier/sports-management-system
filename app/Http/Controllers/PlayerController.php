@@ -25,8 +25,45 @@ class PlayerController extends Controller
         $search = $request->query('search');
         $team_id = $request->query('activeTab');
         
-        $query = Player::where('event_id', $event_id)->where('intrams_id', $intrams_id);
+        // Get the current event
+        $event = Event::findOrFail($event_id);
+        
+        // Initialize the query based on event hierarchy
+        if ($event->parent_id) {
+            // This is a subevent, find all sibling subevents (including this one)
+            $parentId = $event->parent_id;
+            
+            // Get all event IDs that share the same parent
+            $siblingEventIds = Event::where('parent_id', $parentId)
+                ->pluck('id')
+                ->toArray();
+            
+            \Log::info('Subevent detected, fetching players from all subevents under parent: ' . $parentId);
+            \Log::info('Sibling event IDs: ', $siblingEventIds);
+            
+            // Query players from all sibling events
+            $query = Player::whereIn('event_id', $siblingEventIds)
+                ->where('intrams_id', $intrams_id);
+        } 
+        else if (Event::where('parent_id', $event_id)->exists()) {
+            // This is a parent event, get players from all its subevents
+            $childEventIds = Event::where('parent_id', $event_id)
+                ->pluck('id')
+                ->toArray();
+                
+            \Log::info('Parent event detected, fetching players from all subevents: ', $childEventIds);
+            
+            // Query players from all child events
+            $query = Player::whereIn('event_id', $childEventIds)
+                ->where('intrams_id', $intrams_id);
+        }
+        else {
+            // Regular event (not parent or child), get players directly assigned to it
+            $query = Player::where('event_id', $event_id)
+                ->where('intrams_id', $intrams_id);
+        }
 
+        // Apply filters
         if ($team_id && $team_id !== 'All') {
             $query->where('team_id', $team_id);
         }
@@ -41,6 +78,8 @@ class PlayerController extends Controller
 
         $players = $query->orderBy('created_at', 'desc')->paginate($perPage);
         $playersData = $players->items();
+        
+        // Process player data
         foreach ($playersData as $player) {
             if ($player->medical_certificate) {
                 $player->medical_certificate = asset('storage/' . $player->medical_certificate);            

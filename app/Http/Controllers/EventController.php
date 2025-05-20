@@ -100,7 +100,7 @@ class EventController extends Controller
         ], 200);
     }
 
-    // Modify the store method to handle umbrella events and sub-events
+    // In the store method - Add condition to skip Challonge API for "no bracket" type
     public function store(StoreEventRequest $request)
     {
         \Log::info('Incoming data:', $request->all());
@@ -120,13 +120,13 @@ class EventController extends Controller
             $validated['type'] = $parent->type;
             $validated['name'] = $parent->name . " ". $validated['name'];
         }
-        //hack
-        //$validated['challonge_event_id'] = null;
+
         if (!isset($validated['tournament_type'])) {
             $validated['tournament_type'] = "umbrella";
         }
-        // Only create Challonge tournament for non-umbrella events or standalone events
-        if (!$validated['is_umbrella']) {
+
+        // Only create Challonge tournament for non-umbrella events and non-"no bracket" events
+        if (!$validated['is_umbrella'] && $validated['tournament_type'] !== "no bracket") {
             // Create tournament in Challonge
             $uniqueId = uniqid();
 
@@ -136,27 +136,21 @@ class EventController extends Controller
                 'hold_third_place_match' => $validated['hold_third_place_match'] ?? true,
                 'show_rounds' => true
             ];
+            
             $challongeResponse = $this->challonge->createTournament($challongeParams);
             
-            // Create event in our database
-                $event = Event::create($validated);
-            
-
             // Extract the Challonge tournament ID
             $challongeEventId = $challongeResponse['tournament']['id'] ?? null;
-
             $this->challonge->getTournament($challongeEventId);
 
             // Add Challonge ID to the event data
             $validated['challonge_event_id'] = $challongeEventId;
         }
-        if($validated['is_umbrella']) {
-            // Create event in our database
-        $event = Event::create($validated);
-
+        if($validated['tournament_type'] === "no bracket") {
+            $validated['status'] = "in progress";
         }
-
-        
+        // Create event in our database (for all event types including "no bracket")
+        $event = Event::create($validated);
         
         return response()->json($event, 201);
     }
@@ -202,6 +196,9 @@ class EventController extends Controller
             ->where('intrams_id', $intrams_id)
             ->firstOrFail();
 
+        if($event->tournament_type === "no bracket") {
+            return response()->json("no bracket", 200);
+        }
         // Get full tournament details from Challonge
         $challongeTournament = $this->challonge->getTournament($event->challonge_event_id);
 
