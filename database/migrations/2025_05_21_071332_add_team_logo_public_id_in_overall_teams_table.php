@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        //
-        Schema::table('players', function (Blueprint $table) {
-            $table->date('birthdate')->nullable()->change();
-        });
+        Schema::table('overall_teams', function (Blueprint $table) {
+            //
+            $table->string('team_logo_public_id')->nullable();
 
+        });
     }
 
     /**
@@ -23,9 +23,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
-        Schema::table('players', function (Blueprint $table) {
-            $table->string('birthdate')->nullable(false)->change();
+        Schema::table('overall_teams', function (Blueprint $table) {
+            //
+            $table->dropColumn('team_logo_public_id');
         });
     }
 };

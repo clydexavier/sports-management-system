@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         //
-        Schema::table('players', function (Blueprint $table) {
-            $table->date('birthdate')->nullable()->change();
+        Schema::table('schedules', function (Blueprint $table) {
+            $table->string('suggested_play_order')->nullable();
+            
         });
-
     }
 
     /**
@@ -24,8 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         //
-        Schema::table('players', function (Blueprint $table) {
-            $table->string('birthdate')->nullable(false)->change();
+        Schema::table('schedules', function (Blueprint $table) {
+            $table->dropColumn('suggested_play_order');
+            
         });
     }
 };

@@ -11,11 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        //
         Schema::table('players', function (Blueprint $table) {
-            $table->date('birthdate')->nullable()->change();
+            $table->string('picture_public_id')->nullable()->after('picture');
         });
-
     }
 
     /**
@@ -23,9 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
         Schema::table('players', function (Blueprint $table) {
-            $table->string('birthdate')->nullable(false)->change();
+            $table->dropColumn('picture_public_id');
         });
     }
 };

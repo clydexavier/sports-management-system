@@ -96,6 +96,9 @@ class IntramuralGameController extends Controller
 
     public function overall_tally(Request $request, string $id)
     {
+        // Get the type filter from the request, default to 'overall'
+        $type = $request->query('type', 'overall');
+        
         // Load intramural with teams and all podiums + related event and team data
         $intramural = IntramuralGame::with(['teams', 'podiums.event', 'podiums.gold', 'podiums.silver', 'podiums.bronze'])->findOrFail($id);
 
@@ -117,6 +120,11 @@ class IntramuralGameController extends Controller
         foreach ($intramural->podiums as $podium) {
             $event = $podium->event;
             if (!$event) continue;
+            
+            // Skip this event if it doesn't match the type filter
+            if ($type !== 'overall' && strtolower($event->type) !== strtolower($type)) {
+                continue;
+            }
 
             $goldCount = $event->gold ?? 0;
             $silverCount = $event->silver ?? 0;
@@ -144,13 +152,35 @@ class IntramuralGameController extends Controller
             $addMedal($podium->bronze, 'bronze', $bronzeCount);
         }
 
+        // Filter out teams with no medals (only if a specific type is selected)
+        if ($type !== 'overall') {
+            $tally = array_filter($tally, function ($teamTally) {
+                return $teamTally['gold'] > 0 || $teamTally['silver'] > 0 || $teamTally['bronze'] > 0;
+            });
+            
+            // If no teams have medals for this category, we'll keep all teams with zero counts
+            if (empty($tally)) {
+                foreach ($intramural->teams as $team) {
+                    $tally[$team->id] = [
+                        'team_id' => $team->id,
+                        'team_name' => $team->name,
+                        'team_logo' => $team->team_logo_path ? asset('storage/' . $team->team_logo_path) : null,
+                        'gold' => 0,
+                        'silver' => 0,
+                        'bronze' => 0,
+                    ];
+                }
+            }
+        }
+
         // Step 3: Sort the tally by gold, silver, then bronze
         $sorted = collect($tally)->sort(function ($a, $b) {
             return [$b['gold'], $b['silver'], $b['bronze']] <=> [$a['gold'], $a['silver'], $a['bronze']];
         })->values();
 
         return response()->json([
-            'data' => $sorted
+            'data' => $sorted,
+            'intrams_name' => $intramural->name,
         ], 200);
     }
 

@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        //
-        Schema::table('players', function (Blueprint $table) {
-            $table->date('birthdate')->nullable()->change();
-        });
+        Schema::table('galleries', function (Blueprint $table) {
+            //
+            $table->string('cloudinary_public_id')->nullable()->after('file_path');
 
+        });
     }
 
     /**
@@ -23,9 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
-        Schema::table('players', function (Blueprint $table) {
-            $table->string('birthdate')->nullable(false)->change();
+        Schema::table('galleries', function (Blueprint $table) {
+            //
+            $table->dropColumn('cloudinary_public_id');
+
         });
     }
 };

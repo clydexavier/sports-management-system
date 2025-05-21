@@ -48,6 +48,7 @@ class StoreScheduleRequest extends FormRequest
             'date' => ['somtimes', 'date'],
             'time' => ['sometimes'],
             'venue' => ['sometimes', 'string', 'max:50'],
+            'suggested_play_order' ['sometimes']
 
         ];
     }

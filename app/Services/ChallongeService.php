@@ -77,23 +77,39 @@ class ChallongeService
     public function addTournamentParticipants($event_id, $payload = [])
     {
         $url = "{$this->baseUrl}/tournaments/{$event_id}/participants/bulk_add.json";
-
+        
+        // Use JSON format as shown in the example
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
+            'Accept' => 'application/json'
         ])->post($url, $payload);
 
         // Safely handle the response
         if ($response->successful()) {
-            return $response->json(); // returns associative array
+            return $response->json(); 
         }
 
         \Log::error('[ChallongeService] Failed to add participants.', [
             'status' => $response->status(),
-            'body' => $response->body()
+            'body' => $response->body(),
+            'sent_payload' => $payload
         ]);
 
-        // Return an empty array or a descriptive error object
         return [];
+    }
+
+    public function updateMatchScore($event_id, $match_id, $params)
+    {
+        return $this->request('put', "tournaments/{$event_id}/matches/{$match_id}", ['match' => $params]);
+    }
+
+    public function getParticipantStandings($event_id)
+    {
+        $params = [
+            'include_matches' => true
+        ];
+        
+        return $this->request('get', "tournaments/{$event_id}/participants", $params);
     }
 
 }

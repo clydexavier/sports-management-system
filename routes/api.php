@@ -84,7 +84,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('team_names', [OverallTeamController::class, 'index_team_name']);
 
                 //
-               // Route::get('events', [IntramuralGameController::class, 'events']);
+                Route::get('events', [IntramuralGameController::class, 'events']);
                 // Venues
                 Route::prefix('venues')->group(function () {
                     Route::get('/', [VenueController::class, 'index']);
@@ -106,6 +106,9 @@ Route::prefix('v1')->group(function () {
                 
                 //Podium routes
                 Route::get('podiums', [PodiumController::class, 'index']);
+                Route::post('podiums_pdf', [PodiumController::class, 'generatePodiumPDF']);
+                Route::delete('podiums_pdf', [PodiumController::class, 'deletePodiumPDF']);
+
 
                 // Events //fucntions as tournaments in challonge
                 Route::prefix('events')->group(function () {
@@ -134,6 +137,12 @@ Route::prefix('v1')->group(function () {
                         Route::patch('players/{id}/edit', [PlayerController::class, 'update']);
                         Route::delete('players/{id}', [PlayerController::class, 'destroy']);
 
+                        // New endpoints for document and approval status
+                        Route::patch('players/{id}/document-status', [PlayerController::class, 'updateDocumentStatus']);
+                        Route::patch('players/{id}/reject', [PlayerController::class, 'rejectPlayer']);
+                        Route::patch('players/{id}/clear-rejection', [PlayerController::class, 'clearRejection']);
+
+
                         //Gallery routes
                         Route::get('galleries', [TeamGalleryController::class, 'index']);
                         Route::get('galleries/xd', [TeamGalleryController::class,'getForm2Data']);
@@ -141,16 +150,23 @@ Route::prefix('v1')->group(function () {
                         Route::post('galleries/create', [TeamGalleryController::class,'generateGallery']);
                         Route::delete('galleries/{id}', [TeamGalleryController::class, 'destroy']);
                         Route::get('galleries', [TeamGalleryController::class, 'index']);
-                        
+                        Route::get('galleries/{gallery_id}/pdf', [TeamGalleryController ::class, 'convertToPdf'])->name('intrams.events.galleries.pdf');
+                        Route::get('galleries/{id}/download', [TeamGalleryController::class, 'downloadGallery']);
                         //bracket, matches, and schedule of events
                         Route::get('bracket', [EventController::class, 'bracket']);
                         Route::get('matches', [GameController::class, 'index']);
+
+                        Route::post('matches/{match_id}/score', [EventController::class, 'submitScore']);
+                        Route::get('standings', [EventController::class, 'getStandings']);
 
                         Route::get('schedule', [ScheduleController::class, 'index']);
                         Route::post('schedule/create', [ScheduleController::class, 'store']);
                         Route::get('schedule/{id}', [ScheduleController::class, 'show']);
                         Route::patch('schedule/{id}/edit', [ScheduleController::class, 'update']);
                         Route::delete('schedule/{id}', [ScheduleController::class, 'destroy']);
+
+                        Route::post('schedule_pdf', [ScheduleController::class, 'generateSchedulePDF']);
+                        Route::delete('schedule_pdf', [ScheduleController::class, 'deleteSchedulePDF']);
 
 
 
@@ -168,6 +184,8 @@ Route::prefix('v1')->group(function () {
                        Route::get('podium', [PodiumController::class, 'show']);
                        Route::patch('podium/update', [PodiumController::class, 'update']);
                        Route::delete('podium', [PodiumController::class, 'destroy']);
+                       Route::post('podium_pdf', [PodiumController::class, 'generateSingleEventPodiumPDF']);
+                       Route::delete('podium_pdf', [PodiumController::class, 'deleteSingleEventPodiumPDF']);
                     });
 
                 });

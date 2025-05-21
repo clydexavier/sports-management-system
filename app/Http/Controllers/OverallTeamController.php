@@ -9,17 +9,22 @@ use App\Models\IntramuralGame;
 use App\Http\Requests\OverallTeamRequests\StoreOverallTeamRequest;
 use App\Http\Requests\OverallTeamRequests\UpdateOverallTeamRequest;
 use App\Http\Requests\OverallTeamRequests\UpdateOverallTeamMedalRequest;
-
-use Illuminate\Support\Facades\Storage;
-
+use Cloudinary\Cloudinary;
 
 class OverallTeamController extends Controller
 {
-    //
+    protected $cloudinary;
+
+    public function __construct()
+    {
+        // Initialize Cloudinary with the CLOUDINARY_URL from .env
+        $this->cloudinary = new Cloudinary(env('CLOUDINARY_URL'));
+    }
+
     public function index(Request $request, string $intrams_id)
     {
         \Log::info('Incoming data: ', $request->all());
-        $perPage = 4;
+        $perPage = 12;
         
         $type = $request->query('type');
         $search = $request->query('search');
@@ -36,16 +41,8 @@ class OverallTeamController extends Controller
         
         $teams = $query->orderBy('created_at', 'desc')->paginate($perPage);
         
-        // Transform the data to include the full URL for team logos
-        $teamsData = $teams->items();
-        foreach ($teamsData as $team) {
-            if ($team->team_logo_path) {
-                $team->team_logo_path = asset('storage/' . $team->team_logo_path);            
-            }
-        }
-        
         return response()->json([
-            'data' => $teamsData,
+            'data' => $teams->items(),
             'meta' => [
                 'current_page' => $teams->currentPage(),
                 'per_page' => $teams->perPage(),
@@ -68,11 +65,18 @@ class OverallTeamController extends Controller
         $validated = $request->validated();
 
         if ($request->hasFile('team_logo_path')) {
-            // Store the file in `storage/app/public/team_logos`
-            $path = $request->file('team_logo_path')->store('team_logos', 'public');
+            // Upload file to Cloudinary
+            $uploadedFile = $request->file('team_logo_path');
+            $result = $this->cloudinary->uploadApi()->upload(
+                $uploadedFile->getRealPath(),
+                ['folder' => 'team_logos']
+            );
 
-            // Update the validated data with the relative path
-            $validated['team_logo_path'] = $path;
+            // Store the Cloudinary URL
+            $validated['team_logo_path'] = $result['secure_url'];
+            
+            // Store the public_id for deletion later
+            $validated['team_logo_public_id'] = $result['public_id'];
         }
 
         $overall_team = OverallTeam::create($validated);
@@ -81,10 +85,7 @@ class OverallTeamController extends Controller
 
     public function show(string $intrams_id, string $id) 
     {
-        $overall_team = OverallTeam::where('id', $id) -> where('intrams_id', $intrams_id)->firstOrFail();
-        if ($overall_team->team_logo_path) {
-            $overall_team->team_logo_path = asset('storage/' . $team->team_logo_path);            
-        }
+        $overall_team = OverallTeam::where('id', $id)->where('intrams_id', $intrams_id)->firstOrFail();
         return response()->json($overall_team, 200);
     }
 
@@ -94,31 +95,41 @@ class OverallTeamController extends Controller
 
         $validated = $request->validated();
         \Log::info('Validated data:', $validated);
-        $overall_team = OverallTeam::where('id', $validated['id'])->where('intrams_id', $validated['intrams_id'])->firstOrFail();
-        $remove_logo = $request->input('remove_logo', false);
         
-        if ($request->hasFile('team_logo_path')) {
-            // Store the file in `storage/app/public/team_logos`
-            $path = $request->file('team_logo_path')->store('team_logos', 'public');
-
-            // Update the validated data with the relative path
-            $validated['team_logo_path'] = $path;
-        }
-
-        // Handle logo removal if requested
-        if ($request->has('remove_logo')) {
-            if ($overall_team->team_logo_path && Storage::disk('public')->exists($overall_team->team_logo_path)) {
-                Storage::disk('public')->delete($overall_team->team_logo_path);
+        $overall_team = OverallTeam::where('id', $validated['id'])
+                    ->where('intrams_id', $validated['intrams_id'])
+                    ->firstOrFail();
+        
+        // Handle logo removal if requested (using direct request input instead of validated data)
+        if ($request->input('remove_logo') == '1' && $overall_team->team_logo_path) {
+            // Delete from Cloudinary if public_id exists
+            if ($overall_team->team_logo_public_id) {
+                $this->cloudinary->uploadApi()->destroy($overall_team->team_logo_public_id);
             }
+            
+            // Set both fields to null regardless
             $validated['team_logo_path'] = null;
+            $validated['team_logo_public_id'] = null;
+            
+            \Log::info('Removing logo for team: ' . $overall_team->id);
         }
-        // Handle new logo upload (will override remove_logo if both are provided)
+        // Handle new logo upload
         elseif ($request->hasFile('team_logo_path')) {
-            if ($overall_team->team_logo_path && Storage::disk('public')->exists($overall_team->team_logo_path)) {
-                Storage::disk('public')->delete($overall_team->team_logo_path);
+            // Delete old image if exists
+            if ($overall_team->team_logo_public_id) {
+                $this->cloudinary->uploadApi()->destroy($overall_team->team_logo_public_id);
             }
-            $path = $request->file('team_logo_path')->store('team_logos', 'public');
-            $validated['team_logo_path'] = $path;
+            
+            // Upload new image
+            $uploadedFile = $request->file('team_logo_path');
+            $result = $this->cloudinary->uploadApi()->upload(
+                $uploadedFile->getRealPath(),
+                ['folder' => 'team_logos']
+            );
+
+            // Store the Cloudinary URL and public_id
+            $validated['team_logo_path'] = $result['secure_url'];
+            $validated['team_logo_public_id'] = $result['public_id'];
         }
 
         // Update the model with all validated data at once
@@ -126,7 +137,6 @@ class OverallTeamController extends Controller
 
         return response()->json($overall_team, 200);
     }
-
 
     public function update_medal(UpdateOverallTeamMedalRequest $request) 
     {
@@ -141,16 +151,17 @@ class OverallTeamController extends Controller
         return response()->json(['message' => 'Medals updated successfully', 'team' => $team], 200);
     }
 
-    public function destroy(string $intrams_id,string $id) 
+    public function destroy(string $intrams_id, string $id) 
     {
-        //
         $overall_team = OverallTeam::where('id', $id)
                     ->where('intrams_id', $intrams_id)
                     ->firstOrFail();
 
-        if ($overall_team->team_logo_path && Storage::disk('public')->exists($overall_team->team_logo_path)) {
-            Storage::disk('public')->delete($overall_team->team_logo_path);
-        }           
+        // Delete from Cloudinary if exists
+        if ($overall_team->team_logo_public_id) {
+            $this->cloudinary->uploadApi()->destroy($overall_team->team_logo_public_id);
+        }
+        
         $overall_team->delete();
         return response()->json(['message' => 'Team deleted successfully.'], 204);       
     }
