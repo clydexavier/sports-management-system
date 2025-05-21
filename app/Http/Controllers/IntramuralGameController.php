@@ -100,7 +100,14 @@ class IntramuralGameController extends Controller
         $type = $request->query('type', 'overall');
         
         // Load intramural with teams and all podiums + related event and team data
-        $intramural = IntramuralGame::with(['teams', 'podiums.event', 'podiums.gold', 'podiums.silver', 'podiums.bronze'])->findOrFail($id);
+        $intramural = IntramuralGame::with([
+            'teams', 
+            'podiums.event', 
+            'podiums.gold', 
+            'podiums.silver', 
+            'podiums.bronze',
+            'podiums.event.parent'
+        ])->findOrFail($id);
 
         $tally = [];
 
@@ -116,13 +123,30 @@ class IntramuralGameController extends Controller
             ];
         }
 
-        // Step 2: Loop through podiums and count medals based on event medal allocations
+        // Step 2: Identify dependent umbrella events to avoid double-counting their sub-events
+        $dependentUmbrellaIds = Event::where('intrams_id', $id)
+                                ->where('is_umbrella', true)
+                                ->where('has_independent_medaling', false)
+                                ->pluck('id')
+                                ->toArray();
+
+        // Step 3: Loop through podiums and count medals based on event medal allocations
         foreach ($intramural->podiums as $podium) {
             $event = $podium->event;
             if (!$event) continue;
             
             // Skip this event if it doesn't match the type filter
             if ($type !== 'overall' && strtolower($event->type) !== strtolower($type)) {
+                continue;
+            }
+
+            // Skip sub-events of dependent medaling umbrella events to avoid double counting
+            if ($event->parent_id && in_array($event->parent_id, $dependentUmbrellaIds)) {
+                continue;
+            }
+
+            // Also skip the umbrella event itself if it has independent medaling (we count the sub-events instead)
+            if ($event->is_umbrella && $event->has_independent_medaling) {
                 continue;
             }
 
@@ -173,7 +197,7 @@ class IntramuralGameController extends Controller
             }
         }
 
-        // Step 3: Sort the tally by gold, silver, then bronze
+        // Step 4: Sort the tally by gold, silver, then bronze
         $sorted = collect($tally)->sort(function ($a, $b) {
             return [$b['gold'], $b['silver'], $b['bronze']] <=> [$a['gold'], $a['silver'], $a['bronze']];
         })->values();
@@ -186,17 +210,37 @@ class IntramuralGameController extends Controller
 
     public function events(Request $request, string $intrams_id)
     {
-        $events = Event::where('intrams_id', $intrams_id)
-            ->get(['id', 'name', 'category'])   // get only the fields we need
-            ->map(function ($event) {
-                return [
-                    'id'   => $event->id,
-                    'name' => $event->category . ' ' . $event->name,
-                ];
-            });
+        // Get all events
+        $events = Event::where('intrams_id', $intrams_id)->get();
+        
+        // Filter events based on our medal distribution logic
+        $filteredEvents = $events->filter(function ($event) {
+            // Skip sub-events of dependent medaling umbrella events
+            if ($event->parent_id) {
+                $parent = Event::find($event->parent_id);
+                if ($parent && $parent->is_umbrella && !$parent->has_independent_medaling) {
+                    return false;
+                }
+            }
+            
+            // Skip umbrella events with independent medaling (we show their sub-events instead)
+            if ($event->is_umbrella && $event->has_independent_medaling) {
+                return false;
+            }
+            
+            return true;
+        });
+        
+        // Format the events
+        $formattedEvents = $filteredEvents->map(function ($event) {
+            return [
+                'id' => $event->id,
+                'name' => $event->category . ' ' . $event->name,
+                'is_umbrella' => $event->is_umbrella,
+                'has_independent_medaling' => $event->has_independent_medaling
+            ];
+        });
 
-        return response()->json($events, 200);
+        return response()->json($formattedEvents, 200);
     }
-
-
 }
