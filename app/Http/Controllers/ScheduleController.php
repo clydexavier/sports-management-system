@@ -7,6 +7,8 @@ use App\Models\Schedule;
 use App\Models\Event;
 use App\Models\IntramuralGame;
 use Illuminate\Support\Facades\Storage;
+use Cloudinary\Cloudinary; 
+
 
 
 use App\Services\ChallongeService;
@@ -24,12 +26,14 @@ use App\Http\Requests\ScheduleRequests\DestroyScheduleRequest;
 class ScheduleController extends Controller
 {
     protected $challonge;
+    protected $cloudinary; 
 
     public function __construct(ChallongeService $challonge)
     {
         $this->challonge = $challonge;
+        $this->cloudinary = new Cloudinary(env('CLOUDINARY_URL'));
     }
-    //
+    
     public function index(Request $request, $intrams_id, $event_id)
     {
         // First, get the event to obtain the Challonge event ID
@@ -258,181 +262,190 @@ class ScheduleController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function generateSchedulePDF(Request $request, string $intrams_id, string $event_id)
-{
-    // Get the event details
-    $event = Event::where('id', $event_id)
-                ->where('intrams_id', $intrams_id)
-                ->firstOrFail();
-                
-    // Get intramural game
-    $intrams = IntramuralGame::findOrFail($intrams_id);
-    
-    // Get all schedules for this event, ordered by suggested_play_order
-    $schedules = Schedule::where('event_id', $event_id)
-                        ->where('intrams_id', $intrams_id)
-                        ->orderBy('suggested_play_order')
-                        ->get();
-    
-    if ($schedules->isEmpty()) {
-        return response()->json([
-            'message' => 'No schedules found for this event'
-        ], 404);
-    }
-
-    // Create new TCPDF document - A4 Landscape
-    $pdf = new \TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
-    
-    // Set document information
-    $pdf->SetCreator(config('app.name'));
-    $pdf->SetAuthor('System Generated');
-    $pdf->SetTitle($event->name . ' - Schedule');
-    $pdf->SetSubject('Match Schedule');
-    
-    // Remove default header/footer
-    $pdf->setPrintHeader(false);
-    $pdf->setPrintFooter(false);
-    
-    // Set default monospaced font
-    $pdf->SetDefaultMonospacedFont('courier');
-    
-    // Set margins
-    $pdf->SetMargins(20, 20, 20);
-    
-    // Set auto page breaks
-    $pdf->SetAutoPageBreak(true, 20);
-    
-    // Add page
-    $pdf->AddPage();
-    
-    // Define colors (RGB values)
-    $headerBgColor = [157, 190, 75]; // Light green for header
-    $tableBgColor = [226, 239, 181]; // Lighter green for table
-    $timeColColor = [157, 190, 75]; // Same as header for time column
-    $vsColor = [255, 0, 0]; // Red for "vs" text
-    
-    // Set up initial page
-    $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, $intrams->name, 0, 1, 'C');
-    $pdf->SetFont('helvetica', 'B', 14);
-    $pdf->Cell(0, 10, $event->name . ' - Schedule', 0, 1, 'C');
-    $pdf->Ln(10);
-    
-    // Using a more balanced width that won't stretch too wide on A4 landscape
-    // Total width of 240mm (instead of the full ~297mm)
-    $totalWidth = 240;
-    
-    // Define balanced column widths based on your example image
-    $timeWidth = 30;       // TIME column
-    $gameWidth = 30;       // GAME# column
-    $teamWidth = 80;       // Each team column (approximately)
-    $vsWidth = 20;         // VS column
-    $venueWidth = 30;      // VENUE column
-    
-    // Count the number of teams
-    $teamCount = $this->getUniqueTeamCount($schedules);
-    
-    // Convert RGB arrays to hex strings for TCPDF
-    $headerBgColorHex = sprintf('%02X%02X%02X', $headerBgColor[0], $headerBgColor[1], $headerBgColor[2]);
-    $tableBgColorHex = sprintf('%02X%02X%02X', $tableBgColor[0], $tableBgColor[1], $tableBgColor[2]);
-    $timeColColorHex = sprintf('%02X%02X%02X', $timeColColor[0], $timeColColor[1], $timeColColor[2]);
-    $vsColorHex = sprintf('%02X%02X%02X', $vsColor[0], $vsColor[1], $vsColor[2]);
-    
-    // Add Teams & Event header
-    $pdf->SetFillColor($headerBgColor[0], $headerBgColor[1], $headerBgColor[2]);
-    $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->Cell($timeWidth, 10, $teamCount . ' Teams', 1, 0, 'C', true);
-    $pdf->Cell($gameWidth + $teamWidth * 2 + $vsWidth, 10, $event->name, 1, 0, 'C', true);
-    $pdf->Cell($venueWidth, 10, '', 1, 1, 'C', true); // Empty cell for VENUE header
-    
-    // Table Header
-    $pdf->SetFillColor($timeColColor[0], $timeColColor[1], $timeColColor[2]);
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->Cell($timeWidth, 8, 'TIME', 1, 0, 'C', true);
-    
-    $pdf->SetFillColor($headerBgColor[0], $headerBgColor[1], $headerBgColor[2]);
-    $pdf->Cell($gameWidth, 8, 'GAME#', 1, 0, 'C', true);
-    
-    // We're not using a single cell for team matchups anymore
-    // Instead, we create individual columns for team1, vs, team2
-    $pdf->Cell($teamWidth * 2 + $vsWidth, 8, '', 1, 0, 'C', true);
-    
-    $pdf->Cell($venueWidth, 8, 'VENUE', 1, 1, 'C', true);
-    
-    // Initialize table rows color
-    $pdf->SetFillColor($tableBgColor[0], $tableBgColor[1], $tableBgColor[2]);
-    
-    // Populate schedule rows - using consistent row height
-    $rowHeight = 8;
-    
-    foreach ($schedules as $index => $schedule) {
-        // Handle time column
-        $pdf->SetFillColor($timeColColor[0], $timeColColor[1], $timeColColor[2]);
-        $timeString = '';
-        if ($schedule->time) {
-            $timeString = date('h:i A', strtotime($schedule->time));
-        }
-        $pdf->Cell($timeWidth, $rowHeight, $timeString, 1, 0, 'C', true);
+    {
+        // Get the event details
+        $event = Event::where('id', $event_id)
+                    ->where('intrams_id', $intrams_id)
+                    ->firstOrFail();
+                    
+        // Get intramural game
+        $intrams = IntramuralGame::findOrFail($intrams_id);
         
-        // Reset fill color for the rest of the row
+        // Get all schedules for this event, ordered by suggested_play_order
+        $schedules = Schedule::where('event_id', $event_id)
+                            ->where('intrams_id', $intrams_id)
+                            ->orderBy('suggested_play_order')
+                            ->get();
+        
+        if ($schedules->isEmpty()) {
+            return response()->json([
+                'message' => 'No schedules found for this event'
+            ], 404);
+        }
+
+        // Create new TCPDF document - A4 Landscape
+        $pdf = new \TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
+        
+        // Set document information
+        $pdf->SetCreator(config('app.name'));
+        $pdf->SetAuthor('System Generated');
+        $pdf->SetTitle($event->name . ' - Schedule');
+        $pdf->SetSubject('Match Schedule');
+        
+        // Remove default header/footer
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        
+        // Set default monospaced font
+        $pdf->SetDefaultMonospacedFont('courier');
+        
+        // Set margins
+        $pdf->SetMargins(20, 20, 20);
+        
+        // Set auto page breaks
+        $pdf->SetAutoPageBreak(true, 20);
+        
+        // Add page
+        $pdf->AddPage();
+        
+        // Define colors (RGB values)
+        $headerBgColor = [157, 190, 75]; // Light green for header
+        $tableBgColor = [226, 239, 181]; // Lighter green for table
+        $timeColColor = [157, 190, 75]; // Same as header for time column
+        $vsColor = [255, 0, 0]; // Red for "vs" text
+        
+        // Set up initial page
+        $pdf->SetFont('helvetica', 'B', 16);
+        $pdf->Cell(0, 10, $intrams->name, 0, 1, 'C');
+        $pdf->SetFont('helvetica', 'B', 14);
+        $pdf->Cell(0, 10, $event->name . ' - Schedule', 0, 1, 'C');
+        $pdf->Ln(10);
+        
+        // Using a more balanced width that won't stretch too wide on A4 landscape
+        // Total width of 240mm (instead of the full ~297mm)
+        $totalWidth = 240;
+        
+        // Define balanced column widths based on your example image
+        $timeWidth = 30;       // TIME column
+        $gameWidth = 30;       // GAME# column
+        $teamWidth = 80;       // Each team column (approximately)
+        $vsWidth = 20;         // VS column
+        $venueWidth = 30;      // VENUE column
+        
+        // Count the number of teams
+        $teamCount = $this->getUniqueTeamCount($schedules);
+        
+        // Convert RGB arrays to hex strings for TCPDF
+        $headerBgColorHex = sprintf('%02X%02X%02X', $headerBgColor[0], $headerBgColor[1], $headerBgColor[2]);
+        $tableBgColorHex = sprintf('%02X%02X%02X', $tableBgColor[0], $tableBgColor[1], $tableBgColor[2]);
+        $timeColColorHex = sprintf('%02X%02X%02X', $timeColColor[0], $timeColColor[1], $timeColColor[2]);
+        $vsColorHex = sprintf('%02X%02X%02X', $vsColor[0], $vsColor[1], $vsColor[2]);
+        
+        // Add Teams & Event header
+        $pdf->SetFillColor($headerBgColor[0], $headerBgColor[1], $headerBgColor[2]);
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell($timeWidth, 10, $teamCount . ' Teams', 1, 0, 'C', true);
+        $pdf->Cell($gameWidth + $teamWidth * 2 + $vsWidth, 10, $event->name, 1, 0, 'C', true);
+        $pdf->Cell($venueWidth, 10, '', 1, 1, 'C', true); // Empty cell for VENUE header
+        
+        // Table Header
+        $pdf->SetFillColor($timeColColor[0], $timeColColor[1], $timeColColor[2]);
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell($timeWidth, 8, 'TIME', 1, 0, 'C', true);
+        
+        $pdf->SetFillColor($headerBgColor[0], $headerBgColor[1], $headerBgColor[2]);
+        $pdf->Cell($gameWidth, 8, 'GAME#', 1, 0, 'C', true);
+        
+        // We're not using a single cell for team matchups anymore
+        // Instead, we create individual columns for team1, vs, team2
+        $pdf->Cell($teamWidth * 2 + $vsWidth, 8, '', 1, 0, 'C', true);
+        
+        $pdf->Cell($venueWidth, 8, 'VENUE', 1, 1, 'C', true);
+        
+        // Initialize table rows color
         $pdf->SetFillColor($tableBgColor[0], $tableBgColor[1], $tableBgColor[2]);
         
-        // Game number (based on suggested_play_order)
-        $gameNumber = 'G' . ($schedule->suggested_play_order ?? ($index + 1));
-        $pdf->Cell($gameWidth, $rowHeight, $gameNumber, 1, 0, 'C', true);
+        // Populate schedule rows - using consistent row height
+        $rowHeight = 8;
         
-        // Team 1
-        $pdf->Cell($teamWidth, $rowHeight, $schedule->team1_name, 1, 0, 'L', true);
+        foreach ($schedules as $index => $schedule) {
+            // Handle time column
+            $pdf->SetFillColor($timeColColor[0], $timeColColor[1], $timeColColor[2]);
+            $timeString = '';
+            if ($schedule->time) {
+                $timeString = date('h:i A', strtotime($schedule->time));
+            }
+            $pdf->Cell($timeWidth, $rowHeight, $timeString, 1, 0, 'C', true);
+            
+            // Reset fill color for the rest of the row
+            $pdf->SetFillColor($tableBgColor[0], $tableBgColor[1], $tableBgColor[2]);
+            
+            // Game number (based on suggested_play_order)
+            $gameNumber = 'G' . ($schedule->suggested_play_order ?? ($index + 1));
+            $pdf->Cell($gameWidth, $rowHeight, $gameNumber, 1, 0, 'C', true);
+            
+            // Team 1
+            $pdf->Cell($teamWidth, $rowHeight, $schedule->team1_name, 1, 0, 'L', true);
+            
+            // VS text in red
+            $pdf->SetTextColor($vsColor[0], $vsColor[1], $vsColor[2]); // Red
+            $pdf->Cell($vsWidth, $rowHeight, 'vs', 1, 0, 'C', true);
+            $pdf->SetTextColor(0, 0, 0); // Back to black
+            
+            // Team 2
+            $pdf->Cell($teamWidth, $rowHeight, $schedule->team2_name, 1, 0, 'L', true);
+            
+            // Venue
+            $pdf->Cell($venueWidth, $rowHeight, $schedule->venue ?? '', 1, 1, 'C', true);
+        }
         
-        // VS text in red
-        $pdf->SetTextColor($vsColor[0], $vsColor[1], $vsColor[2]); // Red
-        $pdf->Cell($vsWidth, $rowHeight, 'vs', 1, 0, 'C', true);
-        $pdf->SetTextColor(0, 0, 0); // Back to black
+        // Add a note about the format at the bottom of the page
+        $pdf->Ln(5);
+        $pdf->SetFont('helvetica', 'I', 8);
+        $pdf->Cell(0, 5, 'Generated on: ' . date('Y-m-d H:i:s'), 0, 1, 'R');
         
-        // Team 2
-        $pdf->Cell($teamWidth, $rowHeight, $schedule->team2_name, 1, 0, 'L', true);
+        // Get PDF content as string
+        $pdfContent = $pdf->Output('', 'S');
         
-        // Venue
-        $pdf->Cell($venueWidth, $rowHeight, $schedule->venue ?? '', 1, 1, 'C', true);
-    }
-    
-    // Add a note about the format at the bottom of the page
-    $pdf->Ln(5);
-    $pdf->SetFont('helvetica', 'I', 8);
-    $pdf->Cell(0, 5, 'Generated on: ' . date('Y-m-d H:i:s'), 0, 1, 'R');
-    
-    // Use a simpler naming convention for the PDF file
-    $filename = 'schedule_' . $event_id . '.pdf';
-    $storagePath = 'schedule_pdfs/' . $filename;
-    
-    // Log for debugging
-    \Log::info('Generating schedule PDF', [
-        'event_id' => $event_id,
-        'filename' => $filename,
-        'storage_path' => $storagePath
-    ]);
-    
-    // Check if a previous PDF exists for this event and delete it
-    if (Storage::disk('public')->exists($storagePath)) {
-        Storage::disk('public')->delete($storagePath);
-        \Log::info('Replaced existing schedule PDF', [
+        // Use a simpler naming convention for the PDF file
+        $filename = 'schedule_' . $event_id . '.pdf';
+        $folder = 'schedule_pdfs';
+        
+        // Log for debugging
+        \Log::info('Generating schedule PDF', [
             'event_id' => $event_id,
-            'path' => $storagePath
+            'filename' => $filename
         ]);
+        
+        // Check if a previous version exists in Cloudinary and delete it
+        $publicId = $folder . '/' . pathinfo($filename, PATHINFO_FILENAME);
+        try {
+            // Try to delete the existing PDF if it exists
+            $this->cloudinary->uploadApi()->destroy($publicId, ['resource_type' => 'raw']);
+            \Log::info('Removed existing schedule PDF from Cloudinary: ' . $publicId);
+        } catch (\Exception $e) {
+            // Ignore error if the file doesn't exist
+            \Log::info('No existing PDF to delete or delete failed: ' . $e->getMessage());
+        }
+        
+        // Upload the new PDF to Cloudinary
+        $upload = $this->cloudinary->uploadApi()->upload(
+            'data:application/pdf;base64,' . base64_encode($pdfContent),
+            [
+                'folder' => $folder,
+                'public_id' => pathinfo($filename, PATHINFO_FILENAME),
+                'resource_type' => 'raw'
+            ]
+        );
+        
+        \Log::info('Uploaded schedule PDF to Cloudinary', [
+            'public_id' => $upload['public_id'],
+            'url' => $upload['secure_url']
+        ]);
+        
+        // Redirect to the uploaded PDF
+        return redirect($upload['secure_url']);
     }
-    
-    // Ensure directory exists
-    Storage::makeDirectory('public/schedule_pdfs');
-    
-    // Save PDF to storage - note TCPDF's output method is different
-    Storage::put('public/' . $storagePath, $pdf->Output('', 'S'));
-    
-    // Return file for download
-    return response()->download(
-        storage_path('app/public/' . $storagePath),
-        $filename,
-        ['Content-Type' => 'application/pdf']
-    );
-}
 
     /**
      * Delete a schedule PDF for an event
@@ -451,33 +464,27 @@ class ScheduleController extends Controller
         
         // Use the same simple filename pattern as in the generate method
         $filename = 'schedule_' . $event_id . '.pdf';
-        $storagePath = 'schedule_pdfs/' . $filename;
+        $publicId = 'schedule_pdfs/' . pathinfo($filename, PATHINFO_FILENAME);
         
-        // Log for debugging
-        \Log::debug('Attempting to delete schedule PDF', [
-            'event_id' => $event_id,
-            'storage_path' => $storagePath,
-            'exists' => Storage::disk('public')->exists($storagePath)
-        ]);
-        
-        // Check if PDF exists
-        if (!Storage::disk('public')->exists($storagePath)) {
+        try {
+            // Delete the file from Cloudinary
+            $result = $this->cloudinary->uploadApi()->destroy($publicId, ['resource_type' => 'raw']);
+            \Log::info('Deleted schedule PDF from Cloudinary', [
+                'event_id' => $event_id,
+                'result' => $result
+            ]);
+            
             return response()->json([
-                'message' => 'No schedule PDF found for this event'
+                'message' => 'Schedule PDF for event "' . $event->name . '" successfully deleted'
+            ], 200);
+        } catch (\Exception $e) {
+            // If the file doesn't exist or another error occurs
+            \Log::error('Error deleting schedule PDF from Cloudinary: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'No schedule PDF found for this event or error occurred'
             ], 404);
         }
-        
-        // Delete the file
-        Storage::disk('public')->delete($storagePath);
-        \Log::info('Deleted schedule PDF for event', [
-            'event_id' => $event_id,
-            'event_name' => $event->name
-        ]);
-        
-        // Return success response
-        return response()->json([
-            'message' => 'Schedule PDF for event "' . $event->name . '" successfully deleted'
-        ], 200);
     }
 
 }
