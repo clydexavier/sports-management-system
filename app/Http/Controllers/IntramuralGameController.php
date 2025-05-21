@@ -116,7 +116,7 @@ class IntramuralGameController extends Controller
             $tally[$team->id] = [
                 'team_id' => $team->id,
                 'team_name' => $team->name,
-                'team_logo' => $team->team_logo_path ? asset('storage/' . $team->team_logo_path) : null,
+                'team_logo_path' => $team->team_logo_path ? $team->team_logo_path : null,
                 'gold' => 0,
                 'silver' => 0,
                 'bronze' => 0,
@@ -161,7 +161,7 @@ class IntramuralGameController extends Controller
                     $tally[$team->id] = [
                         'team_id' => $team->id,
                         'team_name' => $team->name,
-                        'team_logo' => $team->team_logo_path ? asset('storage/' . $team->team_logo_path) : null,
+                        'team_logo_path' => $team->team_logo_path ? $team->team_logo_path : null,
                         'gold' => 0,
                         'silver' => 0,
                         'bronze' => 0,
@@ -188,7 +188,7 @@ class IntramuralGameController extends Controller
                     $tally[$team->id] = [
                         'team_id' => $team->id,
                         'team_name' => $team->name,
-                        'team_logo' => $team->team_logo_path ? asset('storage/' . $team->team_logo_path) : null,
+                        'team_logo_path' => $team->team_logo_path ? $team->team_logo_path : null,
                         'gold' => 0,
                         'silver' => 0,
                         'bronze' => 0,
