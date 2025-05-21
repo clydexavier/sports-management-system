@@ -9,7 +9,7 @@ class Gallery extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['event_id' , 'team_id', 'file_path'];
+    protected $fillable = ['event_id', 'team_id', 'file_path', 'cloudinary_public_id'];
 
     public function event() 
     {
@@ -20,5 +20,4 @@ class Gallery extends Model
     {
         return $this->belongsTo(OverallTeam::class, 'team_id');
     }
-
 }

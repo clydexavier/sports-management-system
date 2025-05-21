@@ -9,12 +9,21 @@ use App\Models\Gallery;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\TemplateProcessor;
 use Carbon\Carbon;
+use Cloudinary\Cloudinary;
+use Illuminate\Support\Facades\Http;
 
 class TeamGalleryController extends Controller
 {
+    protected $cloudinary;
+
+    public function __construct()
+    {
+        // Initialize Cloudinary with the CLOUDINARY_URL from .env
+        $this->cloudinary = new Cloudinary(env('CLOUDINARY_URL'));
+    }
+
     public function index(Request $request, string $intrams_id, string $event_id)
     {
         // First verify that the event exists and belongs to the specified intrams
@@ -60,24 +69,44 @@ class TeamGalleryController extends Controller
         
         // Get all galleries for these events, with team information
         $galleries = Gallery::whereIn('event_id', $eventIds)
-                            ->with('team')
+                            ->with(['team', 'event'])
                             ->get();
         
         // Group galleries by team with full file URLs
         $galleryByTeam = $galleries->groupBy('team_id')
-                                ->map(function($teamGalleries) {
+                                ->map(function($teamGalleries) use ($event) {
                                     $team = $teamGalleries->first()->team;
                                     return [
                                         'team_id' => $team->id,
                                         'team_name' => $team->name,
-                                        'team_logo_url' => $team->team_logo_path ? url(Storage::url($team->team_logo_path)) : null,
-                                        'galleries' => $teamGalleries->map(function($gallery) {
+                                        'team_logo_url' => $team->team_logo_path, // Cloudinary URLs are already absolute
+                                        'galleries' => $teamGalleries->map(function($gallery) use ($team, $event) {
+                                            // Generate a clean display name for downloads
+                                            $eventName = $gallery->event ? $gallery->event->name : 'Event';
+                                            $teamName = $team->name;
+                                            $displayName = str_replace(' ', '_', "Team_Gallery_{$teamName}_{$eventName}.docx");
+                                            
+                                            // Ensure we're using secure URL
+                                            $secureUrl = $gallery->file_path;
+                                            
+                                            // Create a proper download URL with query parameters
+                                            $downloadUrl = $secureUrl;
+                                            // Add fl_attachment as a query parameter
+                                            if (strpos($downloadUrl, '?') === false) {
+                                                $downloadUrl .= '?fl_attachment=true';
+                                            } else {
+                                                $downloadUrl .= '&fl_attachment=true';
+                                            }
+                                            // Add an explicit Content-Disposition header via Cloudinary parameters
+                                            $downloadUrl .= '&response-content-disposition=attachment;filename=' . urlencode($displayName);
+                                            
                                             return [
                                                 'id' => $gallery->id,
-                                                // Generate full URL for the file
-                                                'file_url' => url(Storage::url($gallery->file_path)),
-                                                // Also include original path if needed
-                                                'file_path' => $gallery->file_path,
+                                                'file_url' => $secureUrl, // Cloudinary secure URL for viewing
+                                                'download_url' => $downloadUrl, // URL optimized for downloading
+                                                'secure_url' => $secureUrl, // Explicitly include secure_url
+                                                'public_id' => $gallery->cloudinary_public_id, // Include public_id for reference
+                                                'display_name' => $displayName, // A clean name for download
                                                 'created_at' => $gallery->created_at
                                             ];
                                         })
@@ -177,14 +206,14 @@ class TeamGalleryController extends Controller
             'screening_date' => Carbon::now()->format('Y-m-d'),
             'team_name' => $team->name,
             'team_category' => $event->category ?? '',
-            'team_logo' => $team->team_logo_path ? $team->team_logo_path : null,
+            'team_logo' => $team->team_logo_path ?? null,
             'players' => $players->map(function ($player) {
                 return [
                     'name' => $player->name,
                     'date_of_birth' => $player->birthdate,
                     'course_year' => $player->course_year,
                     'contact_no' => $player->contact,
-                    'picture' => $player->picture ? $player->picture : null,
+                    'picture' => $player->picture ?? null,
                     'is_varsity' => $player->is_varsity,
                 ];
             }),
@@ -193,26 +222,27 @@ class TeamGalleryController extends Controller
                 'date_of_birth' => $coach->birthdate,
                 'course_year' => $coach->course_year,
                 'contact_no' => $coach->contact,
-                'picture' => $coach->picture ? $coach->picture : null,
+                'picture' => $coach->picture ?? null,
             ] : null,
             'assistant_coach' => $assistantCoach ? [
                 'name' => $assistantCoach->name,
                 'date_of_birth' => $assistantCoach->birthdate,
                 'course_year' => $assistantCoach->course_year,
                 'contact_no' => $assistantCoach->contact,
-                'picture' => $assistantCoach->picture ? $assistantCoach->picture : null,
+                'picture' => $assistantCoach->picture ?? null,
             ] : null,
             'general_manager' => $generalManager ? [
                 'name' => $generalManager->name,
                 'date_of_birth' => $generalManager->birthdate,
                 'course_year' => $generalManager->course_year,
                 'contact_no' => $generalManager->contact,
-                'picture' => $generalManager->picture ? $generalManager->picture : null,
+                'picture' => $generalManager->picture ?? null,
             ] : null,
         ];
     
         return response()->json($formData);
     }
+    
     /**
      * Generate a gallery for Form 2
      */
@@ -244,7 +274,7 @@ class TeamGalleryController extends Controller
             ]);
         }
 
-        // Fetch data using the existing method (pass route parameters)
+        // Fetch data using the existing method
         $formData = $this->getForm2Data($request, $intrams_id, $event_id);
         $data = $formData->getData(); // Get the data from the JsonResponse
 
@@ -255,8 +285,6 @@ class TeamGalleryController extends Controller
         $playerCount = isset($data->players) && is_array($data->players) ? count($data->players) : 0;
         
         // Choose the appropriate template based on player count and staff presence
-        // First page template handles players 1-12
-        // Full template handles players 1-21 plus staff
         if ($playerCount <= 12 && !isset($data->coach) && !isset($data->assistant_coach) && !isset($data->general_manager)) {
             // Use single page template
             $templatePath = public_path('Form_2_Gallery_Template_Single_Page.docx');
@@ -274,7 +302,26 @@ class TeamGalleryController extends Controller
 
         // Define maximum players for each template
         $maxPlayers = ($templatePath == public_path('Form_2_Gallery_Template_Single_Page.docx')) ? 12 : 21;
-        $firstPageSlots = 12;  // players 1-12 on first page
+        
+        // Helper function to download image from Cloudinary URL
+        $downloadImage = function($imageUrl) {
+            if (empty($imageUrl)) return null;
+            
+            try {
+                $response = Http::get($imageUrl);
+                
+                if ($response->successful()) {
+                    $tempDir = sys_get_temp_dir();
+                    $tempFile = $tempDir . '/' . uniqid() . '.jpg';
+                    file_put_contents($tempFile, $response->body());
+                    return $tempFile;
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error downloading image: ' . $e->getMessage());
+            }
+            
+            return null;
+        };
 
         // Process players based on the selected template
         if (isset($data->players) && is_array($data->players)) {
@@ -286,23 +333,28 @@ class TeamGalleryController extends Controller
                 $templateProcessor->setValue("player{$playerNumber}.course", $data->players[$i]->course_year ?? '');
                 $templateProcessor->setValue("player{$playerNumber}.contact", $data->players[$i]->contact_no ?? '');
                 
-                // Handle player pictures
+                // Handle player pictures from Cloudinary URL
                 if (isset($data->players[$i]->picture) && !empty($data->players[$i]->picture)) {
-                    $picturePath = storage_path('app/public/' . $data->players[$i]->picture);
+                    $tempPicturePath = $downloadImage($data->players[$i]->picture);
                     
-                    if (file_exists($picturePath)) {
+                    if ($tempPicturePath) {
                         $templateProcessor->setImageValue("player{$playerNumber}.picture", [
-                            'path' => $picturePath,
+                            'path' => $tempPicturePath,
                             'width' => 140,
                             'height' => 140,
                             'ratio' => false
                         ]);
+                        
+                        // Register cleanup for temp file
+                        register_shutdown_function(function() use ($tempPicturePath) {
+                            if (file_exists($tempPicturePath)) {
+                                unlink($tempPicturePath);
+                            }
+                        });
                     } else {
-                        // Empty string for missing pictures
                         $templateProcessor->setValue("player{$playerNumber}.picture", '');
                     }
                 } else {
-                    // Empty string for no pictures
                     $templateProcessor->setValue("player{$playerNumber}.picture", '');
                 }
             }
@@ -326,17 +378,24 @@ class TeamGalleryController extends Controller
                 $templateProcessor->setValue("player22.course", $data->coach->course_year ?? '');
                 $templateProcessor->setValue("player22.contact", $data->coach->contact_no ?? '');
                 
-                // Handle coach picture
+                // Handle coach picture from Cloudinary URL
                 if (isset($data->coach->picture) && !empty($data->coach->picture)) {
-                    $picturePath = storage_path('app/public/' . $data->coach->picture);
+                    $tempPicturePath = $downloadImage($data->coach->picture);
                     
-                    if (file_exists($picturePath)) {
+                    if ($tempPicturePath) {
                         $templateProcessor->setImageValue("player22.picture", [
-                            'path' => $picturePath,
+                            'path' => $tempPicturePath,
                             'width' => 100,
                             'height' => 120,
                             'ratio' => false
                         ]);
+                        
+                        // Register cleanup for temp file
+                        register_shutdown_function(function() use ($tempPicturePath) {
+                            if (file_exists($tempPicturePath)) {
+                                unlink($tempPicturePath);
+                            }
+                        });
                     } else {
                         $templateProcessor->setValue("player22.picture", '');
                     }
@@ -359,17 +418,24 @@ class TeamGalleryController extends Controller
                 $templateProcessor->setValue("player23.course", $data->assistant_coach->course_year ?? '');
                 $templateProcessor->setValue("player23.contact", $data->assistant_coach->contact_no ?? '');
                 
-                // Handle assistant coach picture
+                // Handle assistant coach picture from Cloudinary URL
                 if (isset($data->assistant_coach->picture) && !empty($data->assistant_coach->picture)) {
-                    $picturePath = storage_path('app/public/' . $data->assistant_coach->picture);
+                    $tempPicturePath = $downloadImage($data->assistant_coach->picture);
                     
-                    if (file_exists($picturePath)) {
+                    if ($tempPicturePath) {
                         $templateProcessor->setImageValue("player23.picture", [
-                            'path' => $picturePath,
+                            'path' => $tempPicturePath,
                             'width' => 100,
                             'height' => 120,
                             'ratio' => false
                         ]);
+                        
+                        // Register cleanup for temp file
+                        register_shutdown_function(function() use ($tempPicturePath) {
+                            if (file_exists($tempPicturePath)) {
+                                unlink($tempPicturePath);
+                            }
+                        });
                     } else {
                         $templateProcessor->setValue("player23.picture", '');
                     }
@@ -392,17 +458,24 @@ class TeamGalleryController extends Controller
                 $templateProcessor->setValue("player24.course", $data->general_manager->course_year ?? '');
                 $templateProcessor->setValue("player24.contact", $data->general_manager->contact_no ?? '');
                 
-                // Handle general manager picture
+                // Handle general manager picture from Cloudinary URL
                 if (isset($data->general_manager->picture) && !empty($data->general_manager->picture)) {
-                    $picturePath = storage_path('app/public/' . $data->general_manager->picture);
+                    $tempPicturePath = $downloadImage($data->general_manager->picture);
                     
-                    if (file_exists($picturePath)) {
+                    if ($tempPicturePath) {
                         $templateProcessor->setImageValue("player24.picture", [
-                            'path' => $picturePath,
+                            'path' => $tempPicturePath,
                             'width' => 100,
                             'height' => 120,
                             'ratio' => false
                         ]);
+                        
+                        // Register cleanup for temp file
+                        register_shutdown_function(function() use ($tempPicturePath) {
+                            if (file_exists($tempPicturePath)) {
+                                unlink($tempPicturePath);
+                            }
+                        });
                     } else {
                         $templateProcessor->setValue("player24.picture", '');
                     }
@@ -419,30 +492,54 @@ class TeamGalleryController extends Controller
             }
         }
 
-        // Generate unique filename
-        $filename = "team_gallery_" . $teamId . "_" . $event_id . "_" . uniqid() . ".docx";
-
-        // Store the file in public/galleries directory
-        $storageDir = storage_path('app/public/galleries');
-        if (!file_exists($storageDir)) {
-            mkdir($storageDir, 0755, true);
+        // Generate unique filename with clear pattern
+        $publicId = "gallery_" . $teamId . "_" . $event_id . "_" . uniqid();
+        $filename = $publicId . ".docx";
+        
+        // Save document to temp file first
+        $tempFilePath = sys_get_temp_dir() . '/' . $filename;
+        $templateProcessor->saveAs($tempFilePath);
+        
+        // Read the file content
+        $docxContent = file_get_contents($tempFilePath);
+        
+        // Upload to Cloudinary
+        $result = $this->cloudinary->uploadApi()->upload(
+            "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64," . base64_encode($docxContent),
+            [
+                'folder' => 'galleries',
+                'public_id' => $publicId,
+                'resource_type' => 'raw'
+            ]
+        );
+        
+        // Clean up temp file
+        if (file_exists($tempFilePath)) {
+            unlink($tempFilePath);
         }
         
-        $storedFilePath = "galleries/" . $filename;
-        $fullPath = storage_path('app/public/' . $storedFilePath);
-        
-        // Save document with processed placeholders
-        $templateProcessor->saveAs($fullPath);
+        $cloudinaryUrl = $result['secure_url'];
+        $cloudinaryPublicId = 'galleries/' . $publicId;
         
         // Create Gallery record in the database
         $gallery = Gallery::create([
-            'event_id' => $galleryEventId,  // Use parent event ID if subevent
+            'event_id' => $galleryEventId,
             'team_id' => $teamId,
-            'file_path' => $storedFilePath
+            'file_path' => $cloudinaryUrl,
+            'cloudinary_public_id' => $cloudinaryPublicId
         ]);
-
-        // Return the download response
-        return response()->download(storage_path('app/public/' . $storedFilePath), $filename);
+        
+        // Return a JSON response so the frontend can continue without navigation
+        return response()->json([
+            'message' => 'Gallery generated successfully',
+            'gallery' => [
+                'id' => $gallery->id,
+                'file_url' => $cloudinaryUrl,
+                'file_path' => $cloudinaryUrl,
+                'created_at' => $gallery->created_at,
+                'team_id' => $teamId
+            ]
+        ]);
     }
 
     /**
@@ -480,31 +577,71 @@ class TeamGalleryController extends Controller
 
         $savedPlayers = [];
 
-        foreach ($playersData as $playerData) {
-            // Handle file uploads
+        foreach ($playersData as $index => $playerData) {
+            // Handle file uploads with Cloudinary
             $picturePath = null;
+            $picturePublicId = null;
             $medicalCertPath = null;
+            $medicalCertPublicId = null;
             $parentsConsentPath = null;
+            $parentsConsentPublicId = null;
             $corPath = null;
+            $corPublicId = null;
 
-            if ($request->hasFile('players.' . array_search($playerData, $playersData) . '.picture')) {
-                $picturePath = $request->file('players.' . array_search($playerData, $playersData) . '.picture')
-                    ->store('player_pictures', 'public');
+            if ($request->hasFile('players.' . $index . '.picture')) {
+                $uploadedFile = $request->file('players.' . $index . '.picture');
+                $publicId = 'player_picture_' . $teamId . '_' . uniqid();
+                $result = $this->cloudinary->uploadApi()->upload(
+                    $uploadedFile->getRealPath(),
+                    [
+                        'folder' => 'player_pictures',
+                        'public_id' => $publicId
+                    ]
+                );
+                $picturePath = $result['secure_url'];
+                $picturePublicId = $result['public_id'];
             }
 
-            if ($request->hasFile('players.' . array_search($playerData, $playersData) . '.medical_certificate')) {
-                $medicalCertPath = $request->file('players.' . array_search($playerData, $playersData) . '.medical_certificate')
-                    ->store('medical_certificates', 'public');
+            if ($request->hasFile('players.' . $index . '.medical_certificate')) {
+                $uploadedFile = $request->file('players.' . $index . '.medical_certificate');
+                $publicId = 'med_cert_' . $teamId . '_' . uniqid();
+                $result = $this->cloudinary->uploadApi()->upload(
+                    $uploadedFile->getRealPath(),
+                    [
+                        'folder' => 'medical_certificates',
+                        'public_id' => $publicId
+                    ]
+                );
+                $medicalCertPath = $result['secure_url'];
+                $medicalCertPublicId = $result['public_id'];
             }
 
-            if ($request->hasFile('players.' . array_search($playerData, $playersData) . '.parents_consent')) {
-                $parentsConsentPath = $request->file('players.' . array_search($playerData, $playersData) . '.parents_consent')
-                    ->store('parents_consents', 'public');
+            if ($request->hasFile('players.' . $index . '.parents_consent')) {
+                $uploadedFile = $request->file('players.' . $index . '.parents_consent');
+                $publicId = 'consent_' . $teamId . '_' . uniqid();
+                $result = $this->cloudinary->uploadApi()->upload(
+                    $uploadedFile->getRealPath(),
+                    [
+                        'folder' => 'parents_consents',
+                        'public_id' => $publicId
+                    ]
+                );
+                $parentsConsentPath = $result['secure_url'];
+                $parentsConsentPublicId = $result['public_id'];
             }
 
-            if ($request->hasFile('players.' . array_search($playerData, $playersData) . '.cor')) {
-                $corPath = $request->file('players.' . array_search($playerData, $playersData) . '.cor')
-                    ->store('cors', 'public');
+            if ($request->hasFile('players.' . $index . '.cor')) {
+                $uploadedFile = $request->file('players.' . $index . '.cor');
+                $publicId = 'cor_' . $teamId . '_' . uniqid();
+                $result = $this->cloudinary->uploadApi()->upload(
+                    $uploadedFile->getRealPath(),
+                    [
+                        'folder' => 'cors',
+                        'public_id' => $publicId
+                    ]
+                );
+                $corPath = $result['secure_url'];
+                $corPublicId = $result['public_id'];
             }
 
             // Create or update player
@@ -531,18 +668,22 @@ class TeamGalleryController extends Controller
 
             if ($picturePath) {
                 $updateData['picture'] = $picturePath;
+                // You should add cloudinary_picture_id field to your Player model if needed
             }
 
             if ($medicalCertPath) {
                 $updateData['medical_certificate'] = $medicalCertPath;
+                // You should add cloudinary_medical_certificate_id field to your Player model if needed
             }
 
             if ($parentsConsentPath) {
                 $updateData['parents_consent'] = $parentsConsentPath;
+                // You should add cloudinary_parents_consent_id field to your Player model if needed
             }
 
             if ($corPath) {
                 $updateData['cor'] = $corPath;
+                // You should add cloudinary_cor_id field to your Player model if needed
             }
 
             if (!empty($updateData)) {
@@ -558,6 +699,40 @@ class TeamGalleryController extends Controller
         ], 201);
     }
 
+        /**
+ * Download gallery file with proper headers
+ */
+public function downloadGallery(string $intrams_id, string $event_id, string $id)
+{
+    // Find the gallery
+    $gallery = Gallery::findOrFail($id);
+    
+    // Create a temp file
+    $tempFile = tempnam(sys_get_temp_dir(), 'docx_');
+    
+    // Get document content from Cloudinary and save to temp file
+    $response = Http::get($gallery->file_path);
+    
+    if (!$response->successful()) {
+        return response()->json(['error' => 'Unable to download file'], 500);
+    }
+    
+    // Write binary content to temp file
+    file_put_contents($tempFile, $response->body());
+    
+    // Create a meaningful filename
+    $event = $gallery->event ? $gallery->event->name : 'Event';
+    $team = $gallery->team ? $gallery->team->name : 'Team';
+    $filename = str_replace(' ', '_', "Team_Gallery_{$team}_{$event}.docx");
+    
+    // Return the file for download and delete it after sending
+    return response()->download($tempFile, $filename, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ])->deleteFileAfterSend(true);
+}
+    /**
+     * Delete a gallery item
+     */
     public function destroy(Request $request, string $intrams_id, string $event_id, string $id) 
     {
         // Verify event exists and belongs to intrams
@@ -588,15 +763,34 @@ class TeamGalleryController extends Controller
             ->whereIn('event_id', $eventIds)
             ->firstOrFail();
 
-        // Delete the file using Storage facade
-        if ($gallery->file_path && Storage::disk('public')->exists($gallery->file_path)) {
+        // Delete from Cloudinary 
+        if ($gallery->cloudinary_public_id) {
             try {
-                Storage::disk('public')->delete($gallery->file_path);
+                // Use the stored cloudinary_public_id for more reliable deletion
+                $this->cloudinary->uploadApi()->destroy($gallery->cloudinary_public_id, ['resource_type' => 'raw']);
+                \Log::info('Deleted file from Cloudinary', ['public_id' => $gallery->cloudinary_public_id]);
             } catch (\Exception $e) {
-                \Log::error('Failed to delete gallery file: ' . $gallery->file_path, [
-                    'error' => $e->getMessage(),
-                    'gallery_id' => $id
+                \Log::error('Error deleting file from Cloudinary: ' . $e->getMessage(), [
+                    'public_id' => $gallery->cloudinary_public_id
                 ]);
+                // Continue with deletion from database even if Cloudinary deletion fails
+            }
+        } 
+        // Fallback to URL extraction if needed (for older records)
+        else if ($gallery->file_path) {
+            try {
+                // Extract the public ID from the URL
+                // URL format: https://res.cloudinary.com/cloud_name/raw/upload/v123456789/galleries/gallery_id.docx
+                $pattern = '/\/v\d+\/(.+)\.[^\.]+$/';
+                if (preg_match($pattern, $gallery->file_path, $matches)) {
+                    $publicId = $matches[1]; // folder/filename without extension
+                    $this->cloudinary->uploadApi()->destroy($publicId, ['resource_type' => 'raw']);
+                    \Log::info('Deleted file from Cloudinary using URL extraction:', ['public_id' => $publicId]);
+                } else {
+                    \Log::warning('Could not extract public_id from URL: ' . $gallery->file_path);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error deleting file from Cloudinary: ' . $e->getMessage());
             }
         }
 

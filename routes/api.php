@@ -145,7 +145,7 @@ Route::prefix('v1')->group(function () {
                         Route::delete('galleries/{id}', [TeamGalleryController::class, 'destroy']);
                         Route::get('galleries', [TeamGalleryController::class, 'index']);
                         Route::get('galleries/{gallery_id}/pdf', [TeamGalleryController ::class, 'convertToPdf'])->name('intrams.events.galleries.pdf');
-                        
+                        Route::get('galleries/{id}/download', [TeamGalleryController::class, 'downloadGallery']);
                         //bracket, matches, and schedule of events
                         Route::get('bracket', [EventController::class, 'bracket']);
                         Route::get('matches', [GameController::class, 'index']);
