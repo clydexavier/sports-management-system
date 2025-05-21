@@ -83,11 +83,13 @@ class UpdatePlayerRequest extends FormRequest
             'course_year' => ['sometimes', 'string', 'max:255'],
             'contact' => ['sometimes', 'string', 'max:255'],
             'birthdate' => ['sometimes', 'date', 'max:255'],
-            'approved' => ['sometimes', 'boolean'],
-            'picture' => ['nullable', 'file', 'mimes:,jpg,jpeg,png', 'max:2048'],
-            'medical_certificate' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
-            'parents_consent' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
-            'cor' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
+            'approval_status' => ['sometimes', 'string', 'in:approved,pending,rejected'],
+            'medical_certificate_status' => ['sometimes', 'string', 'in:valid,invalid,pending'],
+            'parents_consent_status' => ['sometimes', 'string', 'in:valid,invalid,pending'],
+            'cor_status' => ['sometimes', 'string', 'in:valid,invalid,pending'],
+            'rejection_reason' => ['nullable', 'string', 'required_if:approval_status,rejected'],
+            'picture' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'remove_picture' => ['sometimes', 'boolean'],
         ];
     }
 }

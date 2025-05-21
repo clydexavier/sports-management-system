@@ -137,6 +137,12 @@ Route::prefix('v1')->group(function () {
                         Route::patch('players/{id}/edit', [PlayerController::class, 'update']);
                         Route::delete('players/{id}', [PlayerController::class, 'destroy']);
 
+                        // New endpoints for document and approval status
+                        Route::patch('players/{id}/document-status', [PlayerController::class, 'updateDocumentStatus']);
+                        Route::patch('players/{id}/reject', [PlayerController::class, 'rejectPlayer']);
+                        Route::patch('players/{id}/clear-rejection', [PlayerController::class, 'clearRejection']);
+
+
                         //Gallery routes
                         Route::get('galleries', [TeamGalleryController::class, 'index']);
                         Route::get('galleries/xd', [TeamGalleryController::class,'getForm2Data']);

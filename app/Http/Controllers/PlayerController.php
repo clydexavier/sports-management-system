@@ -13,15 +13,23 @@ use App\Http\Requests\PlayerRequests\StorePlayerRequest;
 use App\Http\Requests\PlayerRequests\UpdatePlayerRequest;
 use App\Http\Requests\PlayerRequests\ShowPlayerRequest;
 use App\Http\Requests\PlayerRequests\DestroyPlayerRequest;
+use Cloudinary\Cloudinary;
 
 class PlayerController extends Controller
 {
+    protected $cloudinary;
+
+    public function __construct()
+    {
+        // Initialize Cloudinary with the CLOUDINARY_URL from .env
+        $this->cloudinary = new Cloudinary(env('CLOUDINARY_URL'));
+    }
+    
     public function index(Request $request, string $intrams_id, string $event_id)
     {
         \Log::info('Incoming data: ', $request->all());
         $perPage = 12;
         
-        $approved = $request->query('approved');
         $search = $request->query('search');
         $team_id = $request->query('activeTab');
         
@@ -68,10 +76,6 @@ class PlayerController extends Controller
             $query->where('team_id', $team_id);
         }
 
-        if ($approved && $approved !== 'All') {
-            $query->where('approved', $approved);
-        }
-
         if ($search) {
             $query->where('name', 'like', '%' . $search . '%');
         }
@@ -79,22 +83,8 @@ class PlayerController extends Controller
         $players = $query->orderBy('created_at', 'desc')->paginate($perPage);
         $playersData = $players->items();
         
-        // Process player data
-        foreach ($playersData as $player) {
-            if ($player->medical_certificate) {
-                $player->medical_certificate = asset('storage/' . $player->medical_certificate);            
-            }
-            if ($player->cor) {
-                $player->cor = asset('storage/' . $player->cor);            
-            }
-            if ($player->parents_consent) {
-                $player->parents_consent = asset('storage/' . $player->parents_consent);            
-            }
-            if ($player->picture) {
-                $player->picture = asset('storage/' . $player->picture);
-            }
-        }
-
+        // Process player data - no need to modify URLs since Cloudinary returns full URLs
+        
         return response()->json([
             'data' => $playersData,
             'meta' => [
@@ -112,28 +102,29 @@ class PlayerController extends Controller
 
         $validated = $request->validated();
 
-        if ($request->hasFile('medical_certificate')) {
-            $path = $request->file('medical_certificate')->store('player_medical_certificates', 'public');
-            $validated['medical_certificate'] = $path;
-        }
-
-        if ($request->hasFile('cor')) {
-            $path = $request->file('cor')->store('player_cors', 'public');
-            $validated['cor'] = $path;
-        }
-
-        if ($request->hasFile('parents_consent')) {
-            $path = $request->file('parents_consent')->store('player_parents_consents', 'public');
-            $validated['parents_consent'] = $path;
-        }
-
         if ($request->hasFile('picture')) {
-            $path = $request->file('picture')->store('player_pictures', 'public');
-            $validated['picture'] = $path;
+            // Upload file to Cloudinary
+            $uploadedFile = $request->file('picture');
+            $result = $this->cloudinary->uploadApi()->upload(
+                $uploadedFile->getRealPath(),
+                ['folder' => 'player_pictures']
+            );
+
+            // Store the Cloudinary URL
+            $validated['picture'] = $result['secure_url'];
+            
+            // Store the public_id for deletion later
+            $validated['picture_public_id'] = $result['public_id'];
         }
 
+        // Set initial document statuses
+        $validated['medical_certificate_status'] = 'pending';
+        $validated['parents_consent_status'] = 'pending';
+        $validated['cor_status'] = 'pending';
+        
+        // Set initial approval status
+        $validated['approval_status'] = 'pending';
         $validated['is_varsity'] = false;
-        $validated['approved'] = false;
 
         $event = Event::find($validated['event_id']);
         if ($event) {
@@ -154,15 +145,10 @@ class PlayerController extends Controller
         \Log::info('Incoming data:', $request->all());
 
         $validated = $request->validated();
-
         \Log::info('Validated data:', $validated);
 
-        $player = Player::where('id', $validated['id'])
-                        ->firstOrFail();
+        $player = Player::where('id', $validated['id'])->firstOrFail();
 
-        $remove_med_cert = $request->input('remove_medical_certificate', false);
-        $remove_cor = $request->input('remove_cor', false);
-        $remove_parents_consent = $request->input('remove_parents_consent', false);
         $remove_picture = $request->input('remove_picture', false);
 
         if ($request->has('id_number')) {
@@ -171,60 +157,36 @@ class PlayerController extends Controller
             }
         }
 
-        // medical_certificate
-        if ($request->hasFile('medical_certificate')) {
-            if ($player->medical_certificate && Storage::disk('public')->exists($player->medical_certificate)) {
-                Storage::disk('public')->delete($player->medical_certificate);
+        // Handle picture removal if requested
+        if ($remove_picture && $player->picture) {
+            // Delete from Cloudinary if public_id exists
+            if ($player->picture_public_id) {
+                $this->cloudinary->uploadApi()->destroy($player->picture_public_id);
             }
-            $path = $request->file('medical_certificate')->store('player_medical_certificates', 'public');
-            $validated['medical_certificate'] = $path;
-        } elseif ($remove_med_cert) {
-            if ($player->medical_certificate && Storage::disk('public')->exists($player->medical_certificate)) {
-                Storage::disk('public')->delete($player->medical_certificate);
-            }
-            $validated['medical_certificate'] = null;
-        }
-
-        // cor
-        if ($request->hasFile('cor')) {
-            if ($player->cor && Storage::disk('public')->exists($player->cor)) {
-                Storage::disk('public')->delete($player->cor);
-            }
-            $path = $request->file('cor')->store('player_cors', 'public');
-            $validated['cor'] = $path;
-        } elseif ($remove_cor) {
-            if ($player->cor && Storage::disk('public')->exists($player->cor)) {
-                Storage::disk('public')->delete($player->cor);
-            }
-            $validated['cor'] = null;
-        }
-
-        // parents_consent
-        if ($request->hasFile('parents_consent')) {
-            if ($player->parents_consent && Storage::disk('public')->exists($player->parents_consent)) {
-                Storage::disk('public')->delete($player->parents_consent);
-            }
-            $path = $request->file('parents_consent')->store('player_parents_consents', 'public');
-            $validated['parents_consent'] = $path;
-        } elseif ($remove_parents_consent) {
-            if ($player->parents_consent && Storage::disk('public')->exists($player->parents_consent)) {
-                Storage::disk('public')->delete($player->parents_consent);
-            }
-            $validated['parents_consent'] = null;
-        }
-
-        // picture
-        if ($request->hasFile('picture')) {
-            if ($player->picture && Storage::disk('public')->exists($player->picture)) {
-                Storage::disk('public')->delete($player->picture);
-            }
-            $path = $request->file('picture')->store('player_pictures', 'public');
-            $validated['picture'] = $path;
-        } elseif ($remove_picture) {
-            if ($player->picture && Storage::disk('public')->exists($player->picture)) {
-                Storage::disk('public')->delete($player->picture);
-            }
+            
+            // Set both fields to null
             $validated['picture'] = null;
+            $validated['picture_public_id'] = null;
+            
+            \Log::info('Removing picture for player: ' . $player->id);
+        }
+        // Handle new picture upload
+        elseif ($request->hasFile('picture')) {
+            // Delete old image if exists
+            if ($player->picture_public_id) {
+                $this->cloudinary->uploadApi()->destroy($player->picture_public_id);
+            }
+            
+            // Upload new image
+            $uploadedFile = $request->file('picture');
+            $result = $this->cloudinary->uploadApi()->upload(
+                $uploadedFile->getRealPath(),
+                ['folder' => 'player_pictures']
+            );
+
+            // Store the Cloudinary URL and public_id
+            $validated['picture'] = $result['secure_url'];
+            $validated['picture_public_id'] = $result['public_id'];
         }
 
         $player->update($validated);
@@ -234,6 +196,87 @@ class PlayerController extends Controller
             'player' => $player
         ], 200);
     }
+    
+    // Method to update document status individually with automatic approval handling
+    public function updateDocumentStatus(Request $request, string $intrams_id, string $event_id, string $player_id)
+    {
+        $player = Player::findOrFail($player_id);
+        
+        $validated = $request->validate([
+            'document_type' => 'required|in:medical_certificate,parents_consent,cor',
+            'status' => 'required|in:valid,invalid,pending',
+        ]);
+        
+        $statusField = $validated['document_type'] . '_status';
+        $player->$statusField = $validated['status'];
+        
+        // If player is currently rejected, keep that status unless manually cleared
+        if ($player->approval_status !== 'rejected') {
+            // Update approval status based on document statuses
+            $this->updatePlayerApprovalStatus($player);
+        }
+        
+        $player->save();
+        
+        return response()->json([
+            'message' => 'Document status updated successfully',
+            'player' => $player
+        ], 200);
+    }
+    
+    // Method to manually reject a player
+    public function rejectPlayer(Request $request, string $intrams_id, string $event_id, string $player_id)
+    {
+        $player = Player::findOrFail($player_id);
+        
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|min:3',
+        ]);
+        
+        $player->approval_status = 'rejected';
+        $player->rejection_reason = $validated['rejection_reason'];
+        $player->save();
+        
+        return response()->json([
+            'message' => 'Player successfully rejected',
+            'player' => $player
+        ], 200);
+    }
+    
+    // Method to clear rejection status (sets back to pending or approved based on documents)
+    public function clearRejection(Request $request, string $intrams_id, string $event_id, string $player_id)
+    {
+        $player = Player::findOrFail($player_id);
+        
+        // Update approval status based on document statuses
+        $this->updatePlayerApprovalStatus($player);
+        
+        // Clear rejection reason
+        $player->rejection_reason = null;
+        $player->save();
+        
+        return response()->json([
+            'message' => 'Rejection status cleared successfully',
+            'player' => $player
+        ], 200);
+    }
+    
+    // Helper method to automatically determine approval status based on document statuses
+    private function updatePlayerApprovalStatus(Player $player)
+    {
+        // If all documents are valid, automatically approve
+        if ($player->medical_certificate_status === 'valid' && 
+            $player->parents_consent_status === 'valid' && 
+            $player->cor_status === 'valid') {
+            $player->approval_status = 'approved';
+        } 
+        // Otherwise, set to pending
+        else {
+            $player->approval_status = 'pending';
+        }
+        
+        return $player;
+    }
 
     public function destroy(DestroyPlayerRequest $request)
     {
@@ -242,17 +285,9 @@ class PlayerController extends Controller
         $validated = $request->validated();
         $player = Player::where('id', $validated['id'])->firstOrFail();
 
-        $files = [
-            $player->medical_certificate,
-            $player->cor,
-            $player->parents_consent,
-            $player->picture
-        ];
-
-        foreach ($files as $file) {
-            if ($file && Storage::disk('public')->exists($file)) {
-                Storage::disk('public')->delete($file);
-            }
+        // Delete picture from Cloudinary if it exists
+        if ($player->picture_public_id) {
+            $this->cloudinary->uploadApi()->destroy($player->picture_public_id);
         }
 
         $player->delete();

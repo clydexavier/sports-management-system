@@ -180,7 +180,7 @@ class TeamGalleryController extends Controller
         // Get players for this team across all related events
         $players = Player::where('team_id', $teamId)
             ->whereIn('event_id', $eventIds)
-            ->where('approved', true)
+            ->where('approval_status', 'approved')
             ->get();
     
         // Get coaches across all related events
