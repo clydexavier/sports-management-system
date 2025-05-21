@@ -7,7 +7,7 @@ use App\Http\Requests\PodiumRequests\StorePodiumRequest;
 use App\Http\Requests\PodiumRequests\ShowPodiumRequest;
 use App\Http\Requests\PodiumRequests\UpdatePodiumRequest;
 use App\Http\Requests\PodiumRequests\DestroyPodiumRequest;
-use Illuminate\Support\Facades\Storage;
+use Cloudinary\Cloudinary;
 
 use App\Models\Podium;
 use App\Models\OverallTeam;
@@ -15,11 +15,15 @@ use App\Models\Event;
 use App\Models\IntramuralGame;
 use App\Models\User;
 
-
-
 class PodiumController extends Controller
 {
-    //
+    protected $cloudinary;
+
+    public function __construct()
+    {
+        // Initialize Cloudinary with the CLOUDINARY_URL from .env
+        $this->cloudinary = new Cloudinary(env('CLOUDINARY_URL'));
+    }
 
     public function index(Request $request, string $intrams_id)
     {
@@ -63,17 +67,11 @@ class PodiumController extends Controller
                     'name' => $podium->event->category . ' ' . $podium->event->name,
                     'type' => $podium->event->type,
                 ],
-                'gold_team_logo' => $podium->gold?->team_logo_path 
-                    ? asset('storage/' . $podium->gold->team_logo_path) 
-                    : null,
+                'gold_team_logo' => $podium->gold?->team_logo_path ?? null,  // Cloudinary URLs are already absolute
                 'gold_team_name' => $podium->gold->name,    
-                'silver_team_logo' => $podium->silver?->team_logo_path 
-                    ? asset('storage/' . $podium->silver->team_logo_path) 
-                    : null,
+                'silver_team_logo' => $podium->silver?->team_logo_path ?? null,  // Cloudinary URLs are already absolute
                 'silver_team_name' => $podium->silver->name,
-                'bronze_team_logo' => $podium->bronze?->team_logo_path 
-                    ? asset('storage/' . $podium->bronze->team_logo_path) 
-                    : null,
+                'bronze_team_logo' => $podium->bronze?->team_logo_path ?? null,  // Cloudinary URLs are already absolute
                 'bronze_team_name' => $podium->bronze->name,
                 'medals' => $podium->event->gold,
             ];
@@ -90,8 +88,6 @@ class PodiumController extends Controller
             'intrams_name' => $intrams->name, 
         ], 200);
     }
-
-
     
     public function store(StorePodiumRequest $request) 
     {
@@ -115,7 +111,6 @@ class PodiumController extends Controller
         $silver_team = OverallTeam::find($podium->silver_team_id);
         $bronze_team = OverallTeam::find($podium->bronze_team_id);
 
-        
         return response()->json([
             'id' => $podium->id,
             'intrams_id' => $podium->intrams_id,
@@ -149,7 +144,6 @@ class PodiumController extends Controller
         return response()->json($podium, 200);
     }
 
-
     public function destroy(DestroyPodiumRequest $request)
     {
         $validated = $request->validated();
@@ -158,14 +152,15 @@ class PodiumController extends Controller
 
         return response()->json(204);
     }
+
     /**
- * Generate a PDF of the podium results for an intramural using TCPDF
- * 
- * @param Request $request
- * @param string $intrams_id
- * @return \Illuminate\Http\Response
- */
-public function generatePodiumPDF(Request $request, string $intrams_id)
+     * Generate a PDF of the podium results for an intramural using TCPDF
+     * 
+     * @param Request $request
+     * @param string $intrams_id
+     * @return \Illuminate\Http\Response
+     */
+    public function generatePodiumPDF(Request $request, string $intrams_id)
 {
     // Get intramural game
     $intrams = IntramuralGame::findOrFail($intrams_id);
@@ -232,6 +227,17 @@ public function generatePodiumPDF(Request $request, string $intrams_id)
             // Add intrams title at the top of each page
             $pdf->SetFont('helvetica', 'B', 14);
             $pdf->Cell(0, 10, $intrams->name . ' - Podium Results', 0, 1, 'C');
+            $pdf->Ln(2);
+        }
+        
+        // Add a horizontal line to separate results when we're adding the second event on a page
+        if ($eventCount % $eventsPerPage === 1) {
+            // Draw a separator line between the two results
+            $pdf->SetY(145); // Position just before the second result starts
+            $pdf->SetLineWidth(0.5);
+            $pdf->Line(15, 145, 195, 145); // Line from left margin to right margin
+            
+            // Optional: Add a small gap after the line
             $pdf->Ln(2);
         }
         
@@ -302,30 +308,42 @@ public function generatePodiumPDF(Request $request, string $intrams_id)
         $pdf->Cell(0, 10, 'No completed events with podium results found.', 0, 1, 'C');
     }
     
-    // Prepare filename - use a standardized name for easy replacement
-    $filename = 'podium_results_' . $intrams_id . '.pdf';
-    $storagePath = 'podium_pdfs/' . $filename;
+    // Get PDF content as string
+    $pdfContent = $pdf->Output('', 'S');
     
-    // Check if a previous PDF exists and delete it
-    if (Storage::disk('public')->exists($storagePath)) {
-        Storage::disk('public')->delete($storagePath);
-        \Log::info('Replaced existing podium PDF for intramural ID: ' . $intrams_id);
+    // Upload to Cloudinary
+    $filename = 'podium_results_' . $intrams_id . '.pdf';
+    $folder = 'podium_pdfs';
+    
+    // Check if a previous version exists in Cloudinary and delete it
+    $publicId = $folder . '/' . pathinfo($filename, PATHINFO_FILENAME);
+    try {
+        // Try to delete the existing PDF if it exists
+        $this->cloudinary->uploadApi()->destroy($publicId, ['resource_type' => 'raw']);
+        \Log::info('Removed existing podium PDF from Cloudinary: ' . $publicId);
+    } catch (\Exception $e) {
+        // Ignore error if the file doesn't exist
+        \Log::info('No existing PDF to delete or delete failed: ' . $e->getMessage());
     }
     
-    // Ensure directory exists
-    Storage::makeDirectory('public/podium_pdfs');
-    
-    // Save PDF to storage - note TCPDF's output method is different
-    Storage::put('public/' . $storagePath, $pdf->Output('', 'S'));
-    
-    // Return file for download
-    return response()->download(
-        storage_path('app/public/' . $storagePath),
-        $filename,
-        ['Content-Type' => 'application/pdf']
+    // Upload the new PDF
+    $upload = $this->cloudinary->uploadApi()->upload(
+        'data:application/pdf;base64,' . base64_encode($pdfContent),
+        [
+            'folder' => $folder,
+            'public_id' => pathinfo($filename, PATHINFO_FILENAME),
+            'resource_type' => 'raw'
+        ]
     );
+    
+    \Log::info('Uploaded podium PDF to Cloudinary', [
+        'public_id' => $upload['public_id'],
+        'url' => $upload['secure_url']
+    ]);
+    
+    // Redirect to the uploaded PDF
+    return redirect($upload['secure_url']);
 }
-
 
     /**
      * Delete the podium PDF for a specific intramural
@@ -340,23 +358,25 @@ public function generatePodiumPDF(Request $request, string $intrams_id)
         
         // Define the standard filename pattern used in generatePodiumPDF
         $filename = 'podium_results_' . $intrams_id . '.pdf';
-        $storagePath = 'podium_pdfs/' . $filename;
+        $publicId = 'podium_pdfs/' . pathinfo($filename, PATHINFO_FILENAME);
         
-        // Check if PDF exists
-        if (!Storage::disk('public')->exists($storagePath)) {
+        try {
+            // Delete the file from Cloudinary
+            $result = $this->cloudinary->uploadApi()->destroy($publicId, ['resource_type' => 'raw']);
+            \Log::info('Deleted podium PDF from Cloudinary', ['result' => $result]);
+            
             return response()->json([
-                'message' => 'No podium PDF found for this intramural'
+                'message' => 'Podium PDF successfully deleted'
+            ], 200);
+        } catch (\Exception $e) {
+            // If the file doesn't exist or another error occurs
+            \Log::error('Error deleting podium PDF from Cloudinary: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'No podium PDF found for this intramural or error occurred'
             ], 404);
         }
-        
-        // Delete the file
-        Storage::disk('public')->delete($storagePath);
-        
-        return response()->json([
-            'message' => 'Podium PDF successfully deleted'
-        ], 200);
     }
-    
     
     /**
      * Generate a PDF of the podium results for a specific event
@@ -367,147 +387,153 @@ public function generatePodiumPDF(Request $request, string $intrams_id)
      * @return \Illuminate\Http\Response
      */
     public function generateSingleEventPodiumPDF(Request $request, string $intrams_id, string $event_id)
-{
-    // Get intramural game
-    $intrams = IntramuralGame::findOrFail($intrams_id);
-    
-    // Get the specific event
-    $event = Event::where('id', $event_id)
-                ->where('intrams_id', $intrams_id)
-                ->firstOrFail();
-                
-    // Get podium for this event
-    $podium = Podium::where('event_id', $event_id)
+    {
+        // Get intramural game
+        $intrams = IntramuralGame::findOrFail($intrams_id);
+        
+        // Get the specific event
+        $event = Event::where('id', $event_id)
                     ->where('intrams_id', $intrams_id)
-                    ->first();
-    
-    if (!$podium) {
-        return response()->json([
-            'message' => 'No podium exists for this event'
-        ], 404);
-    }
-    
-    // Get teams
-    $goldTeam = OverallTeam::find($podium->gold_team_id);
-    $silverTeam = OverallTeam::find($podium->silver_team_id);
-    $bronzeTeam = OverallTeam::find($podium->bronze_team_id);
-    
-    // Get tsecretary who submitted the podium
-    $tsecretary = User::where('event_id', $event_id)
-                    ->where('role', 'tsecretary')
-                    ->first();
-    
-    // Create new TCPDF document - Portrait (P), mm units, A4 format
-    $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-    
-    // Set document information
-    $pdf->SetCreator(config('app.name'));
-    $pdf->SetAuthor('System Generated');
-    $pdf->SetTitle($event->name . ' - Podium Results');
-    $pdf->SetSubject('Podium Results');
-    
-    // Remove default header/footer
-    $pdf->setPrintHeader(false);
-    $pdf->setPrintFooter(false);
-    
-    // Set default monospaced font
-    $pdf->SetDefaultMonospacedFont('courier');
-    
-    // Set margins
-    $pdf->SetMargins(15, 15, 15);
-    
-    // Set auto page breaks
-    $pdf->SetAutoPageBreak(true, 15);
-    
-    // Add page
-    $pdf->AddPage();
-    
-    // Starting at top of page
-    $pdf->SetY(30);
-    
-    // Add intrams and event titles - using helvetica font
-    $pdf->SetFont('helvetica', 'B', 14);
-    $pdf->Cell(0, 8, $intrams->name . ' - Podium Results', 0, 1, 'C');
-    
-    $pdf->SetFont('helvetica', 'B', 12);
-    $pdf->Cell(0, 8, $event->name, 0, 1, 'C');
-    
-    $pdf->SetFont('helvetica', 'I', 10);
-    $pdf->Cell(0, 6, 'Category: ' . $event->category, 0, 1, 'C');
-    $pdf->Ln(5);
-    
-    // Define margin from left edge
-    $leftMargin = 30;
-    $pdf->SetX($leftMargin);
-    
-    // Set consistent color for all labels (black)
-    $pdf->SetTextColor(0, 0, 0);
-    
-    // Gold (First Place)
-    $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->Cell(30, 8, 'First:', 0, 0, 'L'); // Left-aligned
-    $pdf->SetFont('helvetica', '', 11);
-    $pdf->Cell(0, 8, $goldTeam ? $goldTeam->name : 'N/A', 0, 1, 'L');
-    $pdf->SetX($leftMargin);
-    
-    // Silver (Second Place)
-    $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->Cell(30, 8, 'Second:', 0, 0, 'L'); // Left-aligned
-    $pdf->SetFont('helvetica', '', 11);
-    $pdf->Cell(0, 8, $silverTeam ? $silverTeam->name : 'N/A', 0, 1, 'L');
-    $pdf->SetX($leftMargin);
-    
-    // Bronze (Third Place)
-    $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->Cell(30, 8, 'Third:', 0, 0, 'L'); // Left-aligned
-    $pdf->SetFont('helvetica', '', 11);
-    $pdf->Cell(0, 8, $bronzeTeam ? $bronzeTeam->name : 'N/A', 0, 1, 'L');
-    
-    // Add medal counts if available
-    if ($event->gold > 0 || $event->silver > 0 || $event->bronze > 0) {
-        $pdf->Ln(3);
-        $pdf->SetFont('helvetica', 'I', 9);
-        $pdf->Cell(0, 6, 'Medal Value: Gold(' . $event->gold . ') Silver(' . $event->silver . ') Bronze(' . $event->bronze . ')', 0, 1, 'C');
-    }
-    
-    // Add tsecretary information at the bottom of the half-page (around Y=125)
-    $pdf->SetFont('helvetica', 'I', 8);
-    $pdf->SetY(125); // Position at end of half page
-    $pdf->Cell(0, 5, 'Submitted by: ' . ($tsecretary ? $tsecretary->name : 'System'), 0, 1, 'R');
-    $pdf->Cell(0, 5, 'Date: ' . now()->format('Y-m-d'), 0, 1, 'R');
-    
-    // Use a simple filename pattern
-    $filename = 'event_' . $event_id . '.pdf';
-    $storagePath = 'podium_pdfs/' . $filename;
-    
-    // Log for debugging
-    \Log::info('Generating single event podium PDF', [
-        'event_id' => $event_id,
-        'file_path' => $storagePath
-    ]);
-    
-    // Ensure directory exists
-    Storage::makeDirectory('public/podium_pdfs');
-    
-    // Check if a previous PDF exists for this event and delete it
-    if (Storage::disk('public')->exists($storagePath)) {
-        Storage::disk('public')->delete($storagePath);
-        \Log::info('Replaced existing event podium PDF', [
+                    ->firstOrFail();
+                    
+        // Get podium for this event
+        $podium = Podium::where('event_id', $event_id)
+                        ->where('intrams_id', $intrams_id)
+                        ->first();
+        
+        if (!$podium) {
+            return response()->json([
+                'message' => 'No podium exists for this event'
+            ], 404);
+        }
+        
+        // Get teams
+        $goldTeam = OverallTeam::find($podium->gold_team_id);
+        $silverTeam = OverallTeam::find($podium->silver_team_id);
+        $bronzeTeam = OverallTeam::find($podium->bronze_team_id);
+        
+        // Get tsecretary who submitted the podium
+        $tsecretary = User::where('event_id', $event_id)
+                        ->where('role', 'tsecretary')
+                        ->first();
+        
+        // Create new TCPDF document - Portrait (P), mm units, A4 format
+        $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        
+        // Set document information
+        $pdf->SetCreator(config('app.name'));
+        $pdf->SetAuthor('System Generated');
+        $pdf->SetTitle($event->name . ' - Podium Results');
+        $pdf->SetSubject('Podium Results');
+        
+        // Remove default header/footer
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        
+        // Set default monospaced font
+        $pdf->SetDefaultMonospacedFont('courier');
+        
+        // Set margins
+        $pdf->SetMargins(15, 15, 15);
+        
+        // Set auto page breaks
+        $pdf->SetAutoPageBreak(true, 15);
+        
+        // Add page
+        $pdf->AddPage();
+        
+        // Starting at top of page
+        $pdf->SetY(30);
+        
+        // Add intrams and event titles - using helvetica font
+        $pdf->SetFont('helvetica', 'B', 14);
+        $pdf->Cell(0, 8, $intrams->name . ' - Podium Results', 0, 1, 'C');
+        
+        $pdf->SetFont('helvetica', 'B', 12);
+        $pdf->Cell(0, 8, $event->name, 0, 1, 'C');
+        
+        $pdf->SetFont('helvetica', 'I', 10);
+        $pdf->Cell(0, 6, 'Category: ' . $event->category, 0, 1, 'C');
+        $pdf->Ln(5);
+        
+        // Define margin from left edge
+        $leftMargin = 30;
+        $pdf->SetX($leftMargin);
+        
+        // Set consistent color for all labels (black)
+        $pdf->SetTextColor(0, 0, 0);
+        
+        // Gold (First Place)
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(30, 8, 'First:', 0, 0, 'L'); // Left-aligned
+        $pdf->SetFont('helvetica', '', 11);
+        $pdf->Cell(0, 8, $goldTeam ? $goldTeam->name : 'N/A', 0, 1, 'L');
+        $pdf->SetX($leftMargin);
+        
+        // Silver (Second Place)
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(30, 8, 'Second:', 0, 0, 'L'); // Left-aligned
+        $pdf->SetFont('helvetica', '', 11);
+        $pdf->Cell(0, 8, $silverTeam ? $silverTeam->name : 'N/A', 0, 1, 'L');
+        $pdf->SetX($leftMargin);
+        
+        // Bronze (Third Place)
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(30, 8, 'Third:', 0, 0, 'L'); // Left-aligned
+        $pdf->SetFont('helvetica', '', 11);
+        $pdf->Cell(0, 8, $bronzeTeam ? $bronzeTeam->name : 'N/A', 0, 1, 'L');
+        
+        // Add medal counts if available
+        if ($event->gold > 0 || $event->silver > 0 || $event->bronze > 0) {
+            $pdf->Ln(3);
+            $pdf->SetFont('helvetica', 'I', 9);
+            $pdf->Cell(0, 6, 'Medal Value: Gold(' . $event->gold . ') Silver(' . $event->silver . ') Bronze(' . $event->bronze . ')', 0, 1, 'C');
+        }
+        
+        // Add tsecretary information at the bottom of the half-page
+        $pdf->SetFont('helvetica', 'I', 8);
+        $pdf->SetY(125); // Position at end of half page
+        $pdf->Cell(0, 5, 'Submitted by: ' . ($tsecretary ? $tsecretary->name : 'System'), 0, 1, 'R');
+        $pdf->Cell(0, 5, 'Date: ' . now()->format('Y-m-d'), 0, 1, 'R');
+        
+        // Get PDF content as string
+        $pdfContent = $pdf->Output('', 'S');
+        
+        // Upload to Cloudinary
+        $filename = 'event_' . $event_id . '.pdf';
+        $folder = 'podium_pdfs';
+        
+        // Check if a previous version exists in Cloudinary and delete it
+        $publicId = $folder . '/' . pathinfo($filename, PATHINFO_FILENAME);
+        try {
+            // Try to delete the existing PDF if it exists
+            $this->cloudinary->uploadApi()->destroy($publicId, ['resource_type' => 'raw']);
+            \Log::info('Removed existing event podium PDF from Cloudinary: ' . $publicId);
+        } catch (\Exception $e) {
+            // Ignore error if the file doesn't exist
+            \Log::info('No existing event PDF to delete or delete failed: ' . $e->getMessage());
+        }
+        
+        // Upload the new PDF
+        $upload = $this->cloudinary->uploadApi()->upload(
+            'data:application/pdf;base64,' . base64_encode($pdfContent),
+            [
+                'folder' => $folder,
+                'public_id' => pathinfo($filename, PATHINFO_FILENAME),
+                'resource_type' => 'raw'
+            ]
+        );
+        
+        \Log::info('Uploaded event podium PDF to Cloudinary', [
             'event_id' => $event_id,
-            'path' => $storagePath
+            'public_id' => $upload['public_id'],
+            'url' => $upload['secure_url']
         ]);
+        
+        // Redirect to the uploaded PDF
+        return redirect($upload['secure_url']);
     }
-    
-    // Save PDF to storage - note TCPDF's output method is different
-    Storage::put('public/' . $storagePath, $pdf->Output('', 'S'));
-    
-    // Return file for download
-    return response()->download(
-        storage_path('app/public/' . $storagePath),
-        $filename,
-        ['Content-Type' => 'application/pdf']
-    );
-}
+
     /**
      * Delete the podium PDF for a specific event
      * 
@@ -524,30 +550,28 @@ public function generatePodiumPDF(Request $request, string $intrams_id)
                     ->where('intrams_id', $intrams_id)
                     ->firstOrFail();
         
-        // Use the simple filename pattern
+        // Define the standard public ID in Cloudinary
         $filename = 'event_' . $event_id . '.pdf';
-        $storagePath = 'podium_pdfs/' . $filename;
+        $publicId = 'podium_pdfs/' . pathinfo($filename, PATHINFO_FILENAME);
         
-        // Log files in directory for debugging
-        \Log::debug('Files in podium_pdfs directory:', Storage::disk('public')->files('podium_pdfs'));
-        \Log::debug('Looking for file:', ['path' => $storagePath]);
-        
-        // Check if PDF exists
-        if (!Storage::disk('public')->exists($storagePath)) {
+        try {
+            // Delete the file from Cloudinary
+            $result = $this->cloudinary->uploadApi()->destroy($publicId, ['resource_type' => 'raw']);
+            \Log::info('Deleted podium PDF for event from Cloudinary', [
+                'event_id' => $event_id,
+                'result' => $result
+            ]);
+            
             return response()->json([
-                'message' => 'No podium PDF found for this event'
+                'message' => 'Podium PDF for event "' . $event->name . '" successfully deleted'
+            ], 200);
+        } catch (\Exception $e) {
+            // If the file doesn't exist or another error occurs
+            \Log::error('Error deleting event podium PDF from Cloudinary: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'No podium PDF found for this event or error occurred'
             ], 404);
         }
-        
-        // Delete the file
-        Storage::disk('public')->delete($storagePath);
-        \Log::info('Deleted podium PDF for event: ' . $event->name . ' (ID: ' . $event_id . ')');
-        
-        // Return success response
-        return response()->json([
-            'message' => 'Podium PDF for event "' . $event->name . '" successfully deleted'
-        ], 200);
     }
-
-    
 }
