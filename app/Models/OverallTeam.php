@@ -16,7 +16,8 @@ class OverallTeam extends Model
         'total_gold', 
         'total_silver', 
         'total_bronze', 
-        'intrams_id'
+        'intrams_id',
+        'team_logo_public_id',
     ];
 
     protected $attributes = [
