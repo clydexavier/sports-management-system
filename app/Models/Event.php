@@ -66,4 +66,51 @@ class Event extends Model
     {
         return $this->hasMany(Event::class, 'parent_id');
     }
+
+    public function calculateDependentMedals()
+    {
+        if (!$this->is_umbrella || $this->has_independent_medaling) {
+            return null; // Not applicable for standalone or independent medaling events
+        }
+        
+        // Get all sub-events
+        $subEvents = $this->subEvents;
+        
+        // Initialize team scores
+        $teamScores = [];
+        
+        // Calculate points for each team based on medal positions
+        foreach ($subEvents as $subEvent) {
+            // Get the podium for this sub-event
+            $podium = Podium::where('event_id', $subEvent->id)->first();
+            
+            if ($podium) {
+                // Assign points: Gold (3 points), Silver (2 points), Bronze (1 point)
+                if ($podium->gold_team_id) {
+                    $teamScores[$podium->gold_team_id] = ($teamScores[$podium->gold_team_id] ?? 0) + 3;
+                }
+                
+                if ($podium->silver_team_id) {
+                    $teamScores[$podium->silver_team_id] = ($teamScores[$podium->silver_team_id] ?? 0) + 2;
+                }
+                
+                if ($podium->bronze_team_id) {
+                    $teamScores[$podium->bronze_team_id] = ($teamScores[$podium->bronze_team_id] ?? 0) + 1;
+                }
+            }
+        }
+        
+        // Sort teams by score in descending order
+        arsort($teamScores);
+        
+        // Get top 3 teams
+        $topTeams = array_keys(array_slice($teamScores, 0, 3, true));
+        
+        // Return medal winners
+        return [
+            'gold_team_id' => $topTeams[0] ?? null,
+            'silver_team_id' => $topTeams[1] ?? null, 
+            'bronze_team_id' => $topTeams[2] ?? null
+        ];
+    }
 }
