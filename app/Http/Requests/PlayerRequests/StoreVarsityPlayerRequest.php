@@ -36,6 +36,7 @@ class StoreVarsityPlayerRequest extends FormRequest
             'id_number' => ['required', 'string', 'unique:players,id_number'],
             'sport' => ['required', 'string', 'max:255'],
             'intrams_id' => ['required', 'exists:intramural_games,id'],
+            'course_year' => ['required','string', 'max:50']
         ];
     }
 }

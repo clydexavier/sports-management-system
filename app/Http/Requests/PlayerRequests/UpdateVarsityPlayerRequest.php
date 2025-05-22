@@ -43,6 +43,7 @@ class UpdateVarsityPlayerRequest extends FormRequest
                                  ->where('is_varsity', true); // Ensure only varsity players can be updated
                 }),
             ],
+            'course_year' => ['sometimes', 'string', 'max:50'],
         ];
     }
 }

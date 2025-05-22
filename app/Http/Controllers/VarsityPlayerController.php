@@ -42,6 +42,7 @@ class VarsityPlayerController extends Controller
 
     public function store(StoreVarsityPlayerRequest $request) 
     {
+        \Log::info('Incoming data:', $request->all());
         $validated = $request->validated();
         $validated['is_varsity'] = true;
 
