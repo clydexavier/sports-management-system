@@ -31,7 +31,7 @@ class TSecretaryMiddleware
         }
 
         return response()->json([
-            'message' => 'Unauthorized. Technical Secretary access required.'
+            'message' => 'Unauthorized. Tournament Secretary access required.'
         ], 403);
     }
 }
