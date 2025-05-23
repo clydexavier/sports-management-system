@@ -53,13 +53,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('users/{id}', [UserController::class, 'destroy']);
     });
     
-    //GAM
-    //Secretariat
-    //tournament secretary
-
     // Admin-only routes
-
-
     Route::middleware(['auth:sanctum', 'admin'])->group(function () {
         // Intramurals
         Route::prefix('intramurals')->group(function () {
@@ -72,7 +66,6 @@ Route::prefix('v1')->group(function () {
             // Nested routes within specific intramural games
             Route::prefix('{intrams_id}')->group(function () {
                 
-
                 //varsity players sport
                 Route::get('vplayers_sport', [VarsityPlayerController::class, 'vplayer_sports']);
 
@@ -85,6 +78,8 @@ Route::prefix('v1')->group(function () {
 
                 //
                 Route::get('events', [IntramuralGameController::class, 'events']);
+                Route::get('useful_events', [EventController::class, 'noUmbrellaEvents']);
+
                 // Venues
                 Route::prefix('venues')->group(function () {
                     Route::get('/', [VenueController::class, 'index']);
@@ -221,13 +216,10 @@ Route::prefix('v1')->group(function () {
         
         // Get event details for the user's assigned event
         Route::get('/event', [TSecretaryController::class, 'getCurrentEvent']);
-
-
         Route::get('/event/status', [TSecretaryController::class, 'getEventStatus']);
         Route::get('/event/schedules', [TSecretaryController::class, 'getSchedules']);
         Route::get('/event/podium', [TSecretaryController::class, 'getPodium']);
         Route::get('/event/team_names', [TSecretaryController::class, 'getTeamNames']);
-
 
         // Game management routes
         Route::prefix('games')->group(function () {
@@ -245,7 +237,6 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [TSecretaryController::class, 'getEventResult']);
             Route::post('/create', [TSecretaryController::class, 'createPodium']);
             Route::patch('/update', [TSecretaryController::class, 'updatePodium']);
-
         });
         
         // Podium routes
@@ -258,7 +249,4 @@ Route::prefix('v1')->group(function () {
         // Tally routes
         Route::get('/tally', [TSecretaryController::class, 'getTally']);
     });
-
-
-
 });

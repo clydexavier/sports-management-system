@@ -100,6 +100,44 @@ class EventController extends Controller
         ], 200);
     }
 
+    //returns only standalone events and sub-events
+    public function noUmbrellaEvents(Request $request, string $intrams_id) 
+    {
+        $perPage = 12;
+
+        $type = $request->query('type');
+        $search = $request->query('search');
+
+        $query = Event::where('intrams_id', $intrams_id)
+            ->where('is_umbrella', false); // Exclude umbrella events
+
+        // Filter by type if specified
+        if ($type && $type !== 'all') {
+            $query->where('type', $type);
+        }
+
+        // Filter by search term if specified
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        $events = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        // Get event name
+        $intrams = IntramuralGame::findOrFail($intrams_id);
+        $intrams_name = $intrams->name;
+
+        return response()->json([
+            'data' => $events->items(),
+            'intrams_name' => $intrams_name,
+            'meta' => [
+                'current_page' => $events->currentPage(),
+                'per_page' => $events->perPage(),
+                'total' => $events->total(),
+                'last_page' => $events->lastPage(),
+            ]
+        ], 200);
+    }
     // In the store method - Add condition to skip Challonge API for "no bracket" type
     public function store(StoreEventRequest $request)
     {
