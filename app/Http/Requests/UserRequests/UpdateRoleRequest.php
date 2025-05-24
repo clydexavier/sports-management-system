@@ -32,7 +32,7 @@ class UpdateRoleRequest extends FormRequest
     public function rules()
     {
         $rules = [
-            'role' => ['required', Rule::in(['admin', 'GAM', 'tsecretary', 'secretariat', 'user'])],
+            'role' => ['required', Rule::in(['admin', 'GAM', 'tsecretary', 'secretariat', 'user', 'scheduler'])],
         ];
 
         // Add conditional validation based on the role
