@@ -104,6 +104,10 @@ Route::prefix('v1')->group(function () {
                 Route::post('podiums_pdf', [PodiumController::class, 'generatePodiumPDF']);
                 Route::delete('podiums_pdf', [PodiumController::class, 'deletePodiumPDF']);
 
+                //Medal routes
+                Route::post('team_medal_breakdown_pdf', [IntramuralGameController::class, 'generateTeamMedalBreakdownPDF']);
+
+
 
                 // Events //fucntions as tournaments in challonge
                 Route::prefix('events')->group(function () {
