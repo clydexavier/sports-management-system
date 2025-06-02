@@ -17,6 +17,7 @@ use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\PodiumController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\TSecretaryController;
+use App\Http\Controllers\GuestController;
 
 
 
@@ -42,6 +43,47 @@ Route::prefix('v1')->group(function () {
     // Google auth routes
     Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirectToGoogle']);
     Route::get('/auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
+
+    // ========== NEW GUEST ROUTES ==========
+    // Public intramurals information
+    Route::prefix('public')->group(function () {
+        // List all active intramurals
+        Route::get('intramurals', [GuestController::class, 'getIntramurals']);
+        
+        Route::prefix('intramurals/{intrams_id}')->group(function () {
+            // Get intramural details
+            Route::get('/', [GuestController::class, 'getIntramuralDetails']);
+            
+            // Get overall medal tally
+            Route::get('tally', [GuestController::class, 'getOverallTally']);
+            
+            // Get all completed podium results
+            Route::get('podiums', [GuestController::class, 'getPodiumResults']);
+            
+            // Get events for this intramural
+            Route::get('events', [GuestController::class, 'getEvents']);
+            
+            Route::prefix('events/{event_id}')->group(function () {
+                // Get event details
+                Route::get('/', [GuestController::class, 'getEventDetails']);
+                
+                // Get event bracket (read-only)
+                Route::get('bracket', [GuestController::class, 'getEventBracket']);
+                
+                // Get event matches/games with results
+                Route::get('matches', [GuestController::class, 'getEventMatches']);
+                
+                // Get event schedule
+                Route::get('schedule', [GuestController::class, 'getEventSchedule']);
+                
+                // Get event podium result
+                Route::get('podium', [GuestController::class, 'getEventPodium']);
+                
+                // Get event standings
+                Route::get('standings', [GuestController::class, 'getEventStandings']);
+            });
+        });
+    });
     
     // Authenticated user routes
     Route::middleware('auth:sanctum')->group(function () {
