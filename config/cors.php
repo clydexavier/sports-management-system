@@ -19,9 +19,8 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        env('REACT_APP_API', '*'), 
-    ],
+    'allowed_origins' => [ 'https://salingkusog2025.vsu.edu.ph', 'salingkusog2025.vsu.edu.ph', 'http://localhost:5173'],
+
     'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
