@@ -19,8 +19,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*', 'vsu-sms.up.railway.app'],
-
+    'allowed_origins' => [
+        env('FRONTEND_URL', '*'), 
+    ],
     'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
