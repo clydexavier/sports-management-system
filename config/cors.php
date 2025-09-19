@@ -20,7 +20,7 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        env('FRONTEND_URL', '*'), 
+        env('REACT_APP_API', '*'), 
     ],
     'allowed_origins_patterns' => [],
 
