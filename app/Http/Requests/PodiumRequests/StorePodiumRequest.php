@@ -39,9 +39,9 @@ class StorePodiumRequest extends FormRequest
                     return $query->where('intrams_id', $this->input('intrams_id'));
                 }),
             ],            
-            'gold_team_id' => ['required', 'exists:overall_teams,id'],
-            'silver_team_id' => ['required', 'exists:overall_teams,id'],
-            'bronze_team_id' => ['required', 'exists:overall_teams,id'],
+            'gold_team_id' => ['sometimes',  'nullable', 'exists:overall_teams,id'],
+            'silver_team_id' => ['sometimes', 'nullable', 'exists:overall_teams,id'],
+            'bronze_team_id' => ['sometimes', 'nullable', 'exists:overall_teams,id'],
         ];
     }
 }
